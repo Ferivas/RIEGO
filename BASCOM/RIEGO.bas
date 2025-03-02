@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 65
+$version 0 , 1 , 106
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 80
@@ -15,7 +15,7 @@ $swstack = 80
 $framesize = 80
 $baud = 9600
 
-$projecttime = 76
+$projecttime = 112
 
 
 'Declaracion de constantes
@@ -24,6 +24,9 @@ Const Numprog_masuno = Numprog + 1
 Const Numhorariego = 4
 Const Numhorariego_masuno = Numhorariego + 1                'Horas deriego por programa
 Const Numhoras = Numprog * Numhorariego                     'Horas de riego para configurar
+Const Numsec = 8
+Const Numsec_masuno = Numsec + 1                            'Número de seceuncias por horario  de riego
+Const Numsecriego = Numsec * Numhorariego * Numprog
 
 
 Const Nleds = 4
@@ -132,11 +135,22 @@ Do
 
    If Newsec = 1 Then
       Reset Newsec
-      Incr K
+      Incr K1
       Tmpstr52 = Date$
       Tmpstr52 = Tmpstr52 + " " + Time$ + " "
-      'Print #1 , Tmpstr52
-      Lcdat , 3 , 1 , K
+      Lcdat 1 , 1 , Tmpstr52
+      Diasemana = Dayofweek()
+      If Diasemana <> Diasemanaant Then
+         Diasemanaant = Diasemana
+         Tmpstr52 = Lookupstr(diasemana , Tbl_semana)
+         Print #1 , "Dia " ; Diasemana ; "," ; Tmpstr52
+      End If
+   End If
+
+   If Inisecuencia = 1 Then
+      Print #1 , "Ini Sec"
+      Reset Inisecuencia
+      Print #1 , "Fin Sec"
    End If
 
    If Inivariables = 1 Then

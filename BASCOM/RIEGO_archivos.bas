@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 127
+$projecttime = 257
 
 
 '*******************************************************************************
@@ -24,14 +24,15 @@ Declare Sub Leer_rtc()
 Declare Sub Defaultvalues()
 Declare Sub Vercfg()
 Declare Sub Leeidserial()
+Declare Sub Inihorainicio()
 
 '*******************************************************************************
 'Declaracion de variables
 '*******************************************************************************
-Dim Tmpb As Byte , K As Byte
-Dim Tmpb2 As Byte
+Dim Tmpb As Byte , Tmpb2 As Byte , Tmpb3 As Byte , Tmpb4 As Byte
+Dim J As Byte , K As Byte , K1 As Byte , N As Byte
 Dim Tmpl As Long
-Dim Tmpw As Word
+Dim Tmpw As Word , Tmpw2 As Word
 
 Dim Cmdtmp As String * 6
 Dim Atsnd As String * 200
@@ -54,6 +55,7 @@ Dim Horamineep As Eram Long
 
 
 'TEMPORIZADOR
+Dim Ptrsec As Byte
 Dim Enaprog As Byte                                         'hAB DE PROGRAMAS DE RIEGO
 Dim Enaprogeep As Eram Byte
 Dim Habdiasem(numprog) As Byte                              'Habilitación día de semana por prgrama
@@ -62,7 +64,13 @@ Dim Horariego(numhoras) As Long
 Dim Horariegoeep(numhoras) As Eram Long
 Dim Tiemporiego As Word
 Dim Tiemporiegoeep As Eram Word
-
+Dim Secriego(numsecriego) As Byte
+Dim Secriegoeep(numsecriego) As Eram Byte
+Dim Diasemana As Byte
+Dim Diasemanaant As Byte
+Dim Horainicio(numhorariego) As Long                        ' Horarios riego iniciales
+Dim Timestr As String * 10
+Dim Inisecuencia As Bit
 
 'Variables TIMER0
 Dim T0c As Byte
@@ -71,10 +79,13 @@ Dim Estado As Long
 Dim Estado_led(nleds) As Byte
 Dim Iluminar As Bit
 Dim Newsec As Byte
+Dim Kt0 As Byte
 Dim Cntrseg As Byte
 
 'timer1
 Dim Lsyssec As Long
+Dim Tmpltime As Long
+Dim Tt2 As Byte
 
 'Variables SERIAL0
 Dim Ser_ini As Bit , Sernew As Bit
@@ -139,11 +150,11 @@ Int_timer0:
    T0c = T0c Mod 8
    If T0c = 0 Then
       Num_ventana = Num_ventana Mod 32
-      For K = 1 To Nleds
+      For Kt0 = 1 To Nleds
          Estado = Lookup(estado_led(k) , Tabla_estado)
          Iluminar = Estado.num_ventana
          'Toggle Iluminar
-         Select Case K
+         Select Case Kt0
             Case 1:
                Led1 = Iluminar
             Case 2:
@@ -165,6 +176,14 @@ Int_timer1:
    Incr Lsyssec
    Time$ = Time(lsyssec)
    Date$ = Date(lsyssec)
+   Timestr = Time$
+   Tmpltime = Secofday(timestr)
+   For Tt2 = 1 To Numhorariego
+      If Tmpltime = Horainicio(tt2) Then
+         Set Inisecuencia
+         'Ptrcomida = Tt2
+      End If
+   Next
 
 Return
 
@@ -202,33 +221,92 @@ Sub Inivar()
    Horamin = Horamineep
    Print #1 , "Ultima ACT CLK " ; Date(horamin) ; "," ; Time(horamin)
 
-   Enaprog = Enaprogeep
-   Print #1 , "Enaprog=" ; Bin(enaprog)
-
    For Tmpb = 1 To Numprog
       Habdiasem(tmpb) = Habdiasemeep(tmpb)
       Print #1 , "Hab Dias Semana " ; Tmpb ; "=" ; Bin(habdiasem(tmpb))
    Next
 
-   Tmpb2 = 0
-   For Tmpb = 1 To Numhoras
-      Tmpl = Horariegoeep(tmpb)
-      Horariego(tmpb) = Tmpl
-      Print #1 , "Hri " ; Tmpb ; ", Hora=" ; Time(tmpl)
+   Print #1 , "Horarios"
+   For J = 1 To Numprog
+      Print #1 , "Prog " ; J
+      For K = 1 To Numhorariego
+         Tmpw = J - 1
+         Tmpw = Tmpw * 4
+         Tmpw = Tmpw + K
+         Tmpl = Horariegoeep(tmpw)
+         Horariego(tmpw) = Tmpl
+         Print #1 , "Hora " ; K ; "=" ; Time(tmpl) ; ",  " ; Tmpw
+      Next
    Next
+
+   Print #1 , "Secuencias"
+
+   For J = 1 To Numprog
+      Print #1 , "Prog " ; J
+      For K = 1 To Numhorariego
+         Print #1 , "Horario " ; K
+         Tmpw = J - 1
+         Tmpw = Tmpw * 32
+         Tmpw2 = K - 1
+         Tmpw2 = Tmpw2 * 8
+         Tmpw = Tmpw + Tmpw2
+         For N = 1 To Numsec
+            Ptrsec = Tmpw + N
+            Secriego(ptrsec) = Secriegoeep(ptrsec)
+            Print #1 , "SEC " ; N ; "=" ; Bin(secriego(ptrsec)) ; ", " ; Ptrsec
+         Next
+      Next
+   Next
+
+
+'   For Tmpb = 1 To Numsecriego
+'      Secriego(tmpb) = Secriegoeep(tmpb)
+'      Print #1 , "SEC RIEGO" ; Tmpb ; "=" ; Bin(secriego(tmpb))
+'   Next
 
    Tiemporiego = Tiemporiegoeep
    Print #1 , "Tiemporiego=" ; Tiemporiego
 
    Call Leeidserial()
    Print#1 , "IDser<" ; Idserial ; ">"
+   Diasemanaant = 99
+
+   Enaprog = Enaprogeep
+   Print #1 , "Prog Actual=" ; Enaprog
+
+   If Enaprog > 0 Then
+      If Enaprog < Numprog_masuno Then
+         Call Inihorainicio()
+      Else
+         Enaprog = 0
+         Print #1 , "Config Invalida"
+      End If
+
+   Else
+      Print #1 , "Prog Deshabilitados"
+   End If
+
+End Sub
+
+Sub Inihorainicio()
+   J = Enaprog
+   Print #1 , "Prog " ; J
+   For K = 1 To Numhorariego
+      Tmpw = J - 1
+      Tmpw = Tmpw * 4
+      Tmpw = Tmpw + K
+      Tmpl = Horariego(tmpw)
+      Horainicio(k) = Tmpl
+      Print #1 , "Hora inicio " ; K ; "=" ; Time(tmpl) ; ",  " ; Tmpw
+   Next
 
 End Sub
 
 
 
+
 Sub Defaultvalues()
-   Enaprogeep = &B00000001                                  'Solo esta habilitado el prog 1
+   Enaprogeep = 1                                           'Programa Actual 1
    Tiemporiegoeep = 20
    For Tmpb = 1 To Numprog
       Habdiasemeep(tmpb) = &B01111111
@@ -269,6 +347,25 @@ Sub Defaultvalues()
 
    For K = 1 To Numhoras
       Horariegoeep(k) = Horariego(k)
+   Next
+
+   For J = 1 To Numprog
+      Print #1 , "Prog " ; J
+      For K = 1 To Numhorariego
+         Print #1 , "Horario " ; K
+         Tmpw = J - 1
+         Tmpw = Tmpw * 32
+         Tmpw2 = K - 1
+         Tmpw2 = Tmpw2 * 8
+         Tmpw = Tmpw + Tmpw2
+         For N = 1 To Numsec
+            Ptrsec = Tmpw + N
+            Tmpb = Lookup(n , Tbl_secdefault)
+            Secriego(ptrsec) = Tmpb
+            Secriegoeep(ptrsec) = Tmpb
+            Print #1 , "SEC " ; N ; "=" ; Bin(secriego(ptrsec)) ; ", " ; Ptrsec
+         Next
+      Next
    Next
 
 
@@ -337,11 +434,11 @@ Sub Procser()
    Print #1 , "$" ; Serproc
    Tmpstr52 = Mid(serproc , 1 , 6)
    Numpar = Split(serproc , Cmdsplit(1) , ",")
-   If Numpar > 0 Then
-      For Tmpb = 1 To Numpar
-         Print #1 , Tmpb ; ":" ; Cmdsplit(tmpb)
-      Next
-   End If
+'   If Numpar > 0 Then
+'      For Tmpb = 1 To Numpar
+'         Print #1 , Tmpb ; ":" ; Cmdsplit(tmpb)
+'      Next
+'   End If
 
    If Len(cmdsplit(1)) = 6 Then
       Cmdtmp = Cmdsplit(1)
@@ -452,6 +549,7 @@ Sub Procser()
                      Horariegoeep(tmpw) = Horariego(tmpw)
                      Tmpstr52 = Time(horariego(tmpw))
                      Atsnd = "Config Hriego" + Str(tmpb) + " a " + Tmpstr52 + " en PROG " + Str(tmpb2)
+                     Call Inihorainicio()
                   Else
                      Cmderr = 6
                   End If
@@ -503,6 +601,89 @@ Sub Procser()
          Case "LEETRI"
             Cmderr = 0
             Atsnd = "Triego=" + Str(tiemporiego)
+
+         Case "SETSEC"
+            If Numpar = 5 Then
+               Tmpb2 = Val(cmdsplit(2))                     'Numero de programa
+               If Tmpb2 > 0 And Tmpb2 < Numprog_masuno Then
+                  Tmpb3 = Val(cmdsplit(3))                  'Horario
+                  If Tmpb3 > 0 And Tmpb3 < Numhorariego_masuno Then
+                     Tmpb = Val(cmdsplit(4))
+                     If Tmpb > 0 And Tmpb < Numsec_masuno Then
+                        Tmpw = Tmpb2 - 1
+                        Tmpw = Tmpw * 32
+                        Tmpw2 = Tmpb3 - 1
+                        Tmpw2 = Tmpw2 * 8
+                        Tmpw = Tmpw + Tmpw2
+                        Tmpw = Tmpw + Tmpb
+                        Print #1 , "PTR SEC=" ; Tmpw
+                        Tmpb4 = Binval(cmdsplit(5))
+                        Secriego(tmpw) = Tmpb4
+                        Secriegoeep(tmpw) = Tmpb4
+                        Cmderr = 0
+                        Atsnd = "Se config SEC " + Str(tmpb) + " de Horario " + Str(tmpb3) + " de Prog " + Str(tmpb2) + "=" + Bin(secriego(tmpw))
+                     Else
+                        Cmderr = 7
+                     End If
+                  Else
+                     Cmderr = 6
+                  End If
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEESEC"
+            If Numpar = 4 Then
+               Tmpb2 = Val(cmdsplit(2))                     'Numero de programa
+               If Tmpb2 > 0 And Tmpb2 < Numprog_masuno Then
+                  Tmpb3 = Val(cmdsplit(3))                  'Horario
+                  If Tmpb3 > 0 And Tmpb3 < Numhorariego_masuno Then
+                     Tmpb = Val(cmdsplit(4))
+                     If Tmpb > 0 And Tmpb < Numsec_masuno Then
+                        Cmderr = 0
+                        Tmpw = Tmpb2 - 1
+                        Tmpw = Tmpw * 32
+                        Tmpw2 = Tmpb3 - 1
+                        Tmpw2 = Tmpw2 * 8
+                        Tmpw = Tmpw + Tmpw2
+                        Tmpw = Tmpw + Tmpb
+                        Print #1 , "PTR LEE SEC=" ; Tmpw
+                        Atsnd = "SEC " + Str(tmpb) + " de Horario " + Str(tmpb3) + " de Prog " + Str(tmpb2) + "=" + Bin(secriego(tmpw))
+                     Else
+                        Cmderr = 7
+                     End If
+                  Else
+                     Cmderr = 6
+                  End If
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "SETPRG"
+            If Numpar = 2 Then
+               Tmpb2 = Val(cmdsplit(2))                     'Numero de programa
+               If Tmpb2 > 0 And Tmpb2 < Numprog_masuno Then
+                  Cmderr = 0
+                  Enaprog = Val(cmdsplit(2))
+                  Enaprogeep = Enaprog
+                  Atsnd = "Se config Programa Actual a " + Str(enaprog)
+                  Call Inihorainicio()
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEPRG"
+            Cmderr = 0
+            Atsnd = "Prog Actual=" + Str(enaprog)
 
 
          Case Else
@@ -664,6 +845,28 @@ Data &B11111111111111000000110011001100&                    'Estado 13
 Data &B11111111111111001100110011001100&                    'Estado 14
 Data &B11111111111111000000000000001100&                    'Estado 15
 Data &B11111111111111111111111111110000&                    'Estado 16
+
+
+Tbl_secdefault:
+Data &B00000000                                             'Dummy
+Data &B00000001
+Data &B00000010
+Data &B00000100
+Data &B00001000
+Data &B00010000
+Data &B00100000
+Data &B01000000
+Data &B10000000
+
+Tbl_semana:
+Data "Lunes"
+Data "Martes"
+Data "Miercoles"
+Data "Jueves"
+Data "Viernes"
+Data "Sabado"
+Data "Domingo"
+Data "No val"
 
 
 
