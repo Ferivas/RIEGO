@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 106
+$version 0 , 1 , 116
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 80
@@ -15,7 +15,7 @@ $swstack = 80
 $framesize = 80
 $baud = 9600
 
-$projecttime = 112
+$projecttime = 115
 
 
 'Declaracion de constantes
@@ -34,6 +34,17 @@ Const Nleds_masuno = Nleds + 1
 
 Const Ds3231r = &B11010001                                  'DS3231 is very similar to DS1307 but it include a precise crystal
 Const Ds3231w = &B11010000
+
+Const Numtxaut = 4
+Const Numtxaut_mas_uno = Numtxaut + 1
+
+Const Numadc = 2
+Const Numadc_masuno = Numadc + 1
+Const Numsample = 8
+Const Tsample = 1
+
+'HT
+Const Tsampleht = 5
 
 
 'Configuracion de entradas/salidas

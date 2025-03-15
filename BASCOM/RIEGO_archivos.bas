@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 257
+$projecttime = 269
 
 
 '*******************************************************************************
@@ -31,8 +31,10 @@ Declare Sub Inihorainicio()
 '*******************************************************************************
 Dim Tmpb As Byte , Tmpb2 As Byte , Tmpb3 As Byte , Tmpb4 As Byte
 Dim J As Byte , K As Byte , K1 As Byte , N As Byte
-Dim Tmpl As Long
+Dim Tmpl As Long, Tmpl2 As Lon
 Dim Tmpw As Word , Tmpw2 As Word
+
+Dim Jt0 As Byte , Jt1 As Byte
 
 Dim Cmdtmp As String * 6
 Dim Atsnd As String * 200
@@ -72,6 +74,45 @@ Dim Horainicio(numhorariego) As Long                        ' Horarios riego ini
 Dim Timestr As String * 10
 Dim Inisecuencia As Bit
 
+
+
+'Variables para transmisiones automáticas
+Dim Autoval(numtxaut) As Long , Autovaleep(numtxaut) As Eram Long
+Dim Offset(numtxaut) As Long , Offseteep(numtxaut) As Eram Long
+Dim Tmpvaltb As String * 32
+
+'ADC
+Dim Adcn As Byte , Adct As Byte
+Dim Cntrsmpl As Byte
+Dim Cntradc As Byte
+Dim Tmpwadc As Word
+Dim Adccntri(numadc) As Single
+Dim Iniadc As Bit
+Dim Adc_data(numadc) As Single
+Dim Kadc(numadc) As Single
+Dim Kadceep(numadc) As Eram Single
+Dim Smplrdy As Bit
+Dim Vbatval As Single
+Dim Vinval As Single
+Dim Iniprocbat As Bit
+
+
+Dim Tactclk As Long
+Dim Iniactclk As Bit
+Dim Tactclkeep As Eram Long
+
+'SENSOR HT
+Dim Data_dht(5) As Byte , Temperature As String * 10 , Humidity As String * 10 , Dht_type As Byte
+Dim Errorrh As Byte , Errorht As Byte
+Dim Inisampleht As Bit
+Dim Cntrht As Byte
+Dim Humedadstr As String * 8
+Dim Tempstr As String * 8
+Dim Humedadstrant As String * 8
+Dim Tempstrant As String * 8
+Dim Cntrerrht As Byte
+Dim Cntrerrtemp As Byte
+
 'Variables TIMER0
 Dim T0c As Byte
 Dim Num_ventana As Byte
@@ -86,6 +127,13 @@ Dim Cntrseg As Byte
 Dim Lsyssec As Long
 Dim Tmpltime As Long
 Dim Tt2 As Byte
+Dim Tmplisr As Long
+Dim Iniauto As Byte
+
+Dim Tack As Byte
+Dim Iniack As Bit
+Dim Tackeep As Eram Byte
+
 
 'Variables SERIAL0
 Dim Ser_ini As Bit , Sernew As Bit
@@ -184,6 +232,36 @@ Int_timer1:
          'Ptrcomida = Tt2
       End If
    Next
+
+   Tmplisr = Lsyssec Mod Tactclk
+   If Tmplisr = 0 Then
+      Set Iniactclk
+   End If
+
+   Tmplisr = Lsyssec Mod Tack
+   If Tmplisr = 0 Then
+      Set Iniack
+   End If
+
+
+   For Jt1 = 1 To Numtxaut
+      Tmplisr = Lsyssec + Offset(jt1)
+      Tmplisr = Tmplisr Mod Autoval(jt1)
+      Jt0 = Jt1 - 1
+      If Tmplisr = 0 Then Set Iniauto.jt0
+   Next
+
+   Incr Cntradc
+   Cntradc = Cntradc Mod Tsample
+   If Cntradc = 0 Then
+      Set Iniadc
+   End If
+
+   Incr Cntrht
+   Cntrht = Cntrht Mod Tsampleht
+   If Cntrht = 0 Then
+      Set Inisampleht
+   End If
 
 Return
 
@@ -285,6 +363,12 @@ Sub Inivar()
    Else
       Print #1 , "Prog Deshabilitados"
    End If
+
+   For Tmpb = 1 To Numtxaut
+      Autoval(tmpb) = Autovaleep(tmpb)
+      Offset(tmpb) = Offseteep(tmpb)
+      Print #1 , "Aut" ; Tmpb ; "=" ; Autoval(tmpb) ; ", OFF" ; Tmpb ; "=" ; Offset(tmpb)
+   Next
 
 End Sub
 
@@ -684,6 +768,133 @@ Sub Procser()
          Case "LEEPRG"
             Cmderr = 0
             Atsnd = "Prog Actual=" + Str(enaprog)
+
+         Case "SETAUT"
+            If Numpar = 3 Then
+               J = Val(cmdsplit(2))
+               If J > 0 And J < Numtxaut_mas_uno Then
+                 'Snstr = Cmdsplit(3)
+                 Tmpl2 = Val(cmdsplit(3))
+                 Autoval(j) = Tmpl2
+                 Autovaleep(j) = Tmpl2
+                 Cmderr = 0
+                 'Print #1 , "$" ; J ; "," ; Autoval(j)
+                 'Print #1 , "$OK"
+                 Atsnd = "Se configuro tx AUT " + Str(j) + ":" + Str(autoval(j))
+                 Tmpvaltb = Str(autoval(j))
+               Else
+                  Cmderr = 3
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "SETOFF"
+            If Numpar = 3 Then
+               J = Val(cmdsplit(2))
+               If J > 0 And J < Numtxaut_mas_uno Then
+                 'Snstr = Cmdsplit(3)
+                 Tmpl2 = Val(cmdsplit(3))
+                 Offset(j) = Tmpl2
+                 Offseteep(j) = Tmpl2
+                 Cmderr = 0
+                 'Print #1 , "$" ; J ; "," ; Offset(j)
+                 'Print #1 , "$OK"
+                 Atsnd = "Se configuro tx AUT " + Str(j) + ":" + Str(offset(j))
+                 Tmpvaltb = Str(offset(j))
+               Else
+                  Cmderr = 3
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEAUT"                                      'Habilitaciones de Usuario
+            If Numpar = 2 Then
+               J = Val(cmdsplit(2))
+               If J > 0 And J < Numtxaut_mas_uno Then
+                  'Snstr = Cmdsplit(3)
+                  Atsnd = "Tx Aut " + Str(j) + ":" + Str(autoval(j))
+                  Cmderr = 0
+                  Print #1 , "$" ; J ; "," ; Autoval(j)
+                  Print #1 , "$OK"
+                  Tmpvaltb = Str(autoval(j))
+               Else
+                  Cmderr = 3
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEOFF"                                      'Habilitaciones de Usuario
+            If Numpar = 2 Then
+               J = Val(cmdsplit(2))
+               If J > 0 And J < Numtxaut_mas_uno Then
+                 'Snstr = Cmdsplit(3)
+                  Atsnd = "Offset Aut " + Str(j) + ":" + Str(offset(j))
+                  Cmderr = 0
+                  Print #1 , "$" ; J ; "," ; Offset(j)
+                  Print #1 , "$OK"
+                  Tmpvaltb = Str(offset(j))
+               Else
+                  Cmderr = 3
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+
+         Case "SETNEW"
+            If Numpar = 2 Then
+               J = Val(cmdsplit(2))
+               If J > 0 And J < Numtxaut_mas_uno Then
+                  Cmderr = 0
+                  Tmpb = J - 1
+                  Set Iniauto.tmpb
+                  Atsnd = "Se activo Tx. AUT " + Str(j) + "," + Bin(iniauto)
+                  Tmpvaltb = Bin(iniauto)
+               Else
+                  Cmderr = 3
+               End If
+
+            Else
+               Cmderr = 4
+            End If
+
+         Case "SETTAC"
+            If Numpar = 2 Then
+               Tactclk = Val(cmdsplit(2))
+               Tactclkeep = Tactclk
+               Atsnd = "Se configuro Tact CLK=" + Str(tactclk)
+               Tmpvaltb = Str(tactclk)
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEETAC"
+            Cmderr = 0
+            Atsnd = "Tact CLK=" + Str(tactclk)
+            Tmpvaltb = Str(tactclk)
+
+         Case "SETACK"
+            If Numpar = 2 Then
+               Tactclk = Val(cmdsplit(2))
+               Tactclkeep = Tactclk
+               Atsnd = "Se configuro Tak=" + Str(tack)
+               Tmpvaltb = Str(tack)
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEACK"
+            Cmderr = 0
+            Atsnd = "Tack=" + Str(tack)
+            Tmpvaltb = Str(tack)
+
+         Case "INIACK"
+            Cmderr = 0
+            Set Iniack
+            Atsnd = "Nuevo ACK"
 
 
          Case Else
