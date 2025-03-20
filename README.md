@@ -91,8 +91,31 @@ En donde:
 Por ejemplo si es necesario activar las electroválvulas temporizadas 1 y 3 de la secuencia 2 del hoarario de inicio de ciclo de riego 4 del Número de Programa 3, el comando que se debe enviar es el siguiente: <br>
 *SETSEC,3,4,2,00000101* <br>
 
+### CONFIGURACION DE TIEMPO DE ACCIONAMIENTO
+El tiempo de accionamiento de una secuencia en un cilo de riego se configura con el comnado <br>
+*SETTRI,TiempoAccionamiento* <br>
+En donde el Tiempo de Accionamiento están en segundos y puede variar entre 1 y 65535 segundos. Por ejemplo para accionar un tiempo de 5 minutos es necesario configurar el tiempo a 5*60segundos=300 con el siguiente comando:<br>
+*SETTRI,300*
+
 ### CONFIGURACION VIA PUERTO SERIAL
 Los parámetros de operación del sistema de riego se pueden configurar utilizando un terminal serial configurado a 9600 bps (8,N,1). Todos los comandos se envían con un caracter $ de inicio y CR+LF al  final.
+
+## HARDWARE
+El circuito de control de riego se armo en un tablero de control que incluye:
+* Mainboard de Control Principal
+* Módulo de Comunicaciones
+* Módulo de Relés
+* Cableado desde/hacia las electroválvulas
+* Interruptores
+
+El control de las electroválvulas se realizó según el siguiente esquema <br>
+<img width="600" alt="Esquema Conexiones" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/ControlReles.jpg">
+
+Este circuito se montó en un tablero de control cuyo interior se muestra en la figura siguiente: <br>
+<img width="600" alt="Interior Tablero" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/TableroControl_Interior.jpg">
+
+El exterior del circuito de control es le siguiente:<br>
+<img width="600" alt="Exterior Tablero" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/TableroControl_Exterior.jpg">
 
 
 
