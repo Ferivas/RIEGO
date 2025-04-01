@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 116
+$version 0 , 1 , 191
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 80
@@ -15,7 +15,7 @@ $swstack = 80
 $framesize = 80
 $baud = 9600
 
-$projecttime = 115
+$projecttime = 229
 
 
 'Declaracion de constantes
@@ -27,10 +27,6 @@ Const Numhoras = Numprog * Numhorariego                     'Horas de riego para
 Const Numsec = 8
 Const Numsec_masuno = Numsec + 1                            'Número de seceuncias por horario  de riego
 Const Numsecriego = Numsec * Numhorariego * Numprog
-
-
-Const Nleds = 4
-Const Nleds_masuno = Nleds + 1
 
 Const Ds3231r = &B11010001                                  'DS3231 is very similar to DS1307 but it include a precise crystal
 Const Ds3231w = &B11010000
@@ -48,16 +44,44 @@ Const Tsampleht = 5
 
 
 'Configuracion de entradas/salidas
-Led1 Alias Portc.0
+Led1 Alias Portb.7
 Config Led1 = Output
 
-Led2 Alias Portc.1
-Config Led2 = Output
-Led3 Alias Portc.2
-Config Led3 = Output
 
-Ledsta Alias Portb.7                                        'LED ROJO
-Config Ledsta = Output
+'VALVULAS TEMPORIZADAS
+'Config Portc = Output
+
+Ev1 Alias Portc.0
+Config Ev1 = Output
+Ev2 Alias Portc.1
+Config Ev2 = Output
+Ev3 Alias Portc.2
+Config Ev3 = Output
+Ev4 Alias Portc.3
+Config Ev4 = Output
+Ev5 Alias Portc.4
+Config Ev5 = Output
+Ev6 Alias Portc.5
+Config Ev6 = Output
+
+Evriego Alias Portc.6
+Config Evriego = Output
+Evozono Alias Portc.7
+Config Evozono = Output
+Evnebul Alias Portl.0
+Config Evnebul = Output
+Evrecirc Alias Portl.1
+Config Evrecirc = Output
+Evluzev Alias Portl.2
+Config Evluzev = Output
+
+Dht_put Alias Portb.0 : Set Dht_put                         'Sensor pins
+Dht_get Alias Pinb.0
+Dht_io_set Alias Ddrb.0 : Set Dht_io_set
+
+Esp32rst Alias Portd.7
+Set Esp32rst
+Config Esp32rst = Output
 
 
 'Configuración de Interrupciones
@@ -76,6 +100,11 @@ Start Timer1
 Open "com1:" For Binary As #1
 On Urxc At_ser1
 Enable Urxc
+
+Config Com2 = 9600 , Synchrone = 0 , Parity = None , Stopbits = 1 , Databits = 8 , Clockpol = 0
+Open "com2:" For Binary As #3
+On Urxc1 At_ser2
+Enable Urxc1
 
 Dim Dummy As Byte
 Config Clock = User
@@ -106,10 +135,10 @@ $include "RIEGO_archivos.bas"
 
 
 'Programa principal
-Estado_led(4) = 4
+Estado_led = 4
 Call Vercfg()
 Call Inivar()
-Estado_led(4) = 3
+Estado_led = 3
 
 
 Print #1 , "MEGARTC"
@@ -124,12 +153,12 @@ Lcdat 5 , 1 , Version(2)
 Lcdat 7 , 1 , Version(3)
 
 Print #1 , "Verifica CLK"
-Estado_led(4) = 3
+Estado_led = 3
 Do
    Call Leer_rtc()
 Loop Until Actclk = 1
 
-Estado_led(4) = 1
+Estado_led = 1
 
 Print #1 , "Main"
 Wait 1
@@ -144,9 +173,16 @@ Do
       Call Procser()
    End If
 
+   If Rpinew = 1 Then
+      Reset Rpinew
+      Print#1 , "RPItx>" ; Rpiproc
+      Call Procrpi()
+   End If
+
    If Newsec = 1 Then
       Reset Newsec
       Incr K1
+      Call Data2disp()
       Tmpstr52 = Date$
       Tmpstr52 = Tmpstr52 + " " + Time$ + " "
       Lcdat 1 , 1 , Tmpstr52
@@ -155,18 +191,108 @@ Do
          Diasemanaant = Diasemana
          Tmpstr52 = Lookupstr(diasemana , Tbl_semana)
          Print #1 , "Dia " ; Diasemana ; "," ; Tmpstr52
+         Habdiaria = Habdiasemtmp.diasemana
+         Print #1 , "HabDiaria=" ; Habdiaria
+      End If
+      Call Verackesp32()
+   End If
+
+   If Habdiaria = 1 Then
+      If Iniciclo = 1 Then
+         If Iniciclo <> Inicicloant Then
+            Inicicloant = Iniciclo
+            Print #1 , "Ini Ciclo de Riego " ; Ptrciclo
+            Set Inisecuencia
+            Set Newsecuencia
+            Ptrsecuencia = 0
+         End If
+
+         If Newsecuencia = 1 Then
+            Reset Newsecuencia
+            Print #1 , "SEC=" ; Ptrsecuencia ; "," ; Time$
+            Call Outreles(enaprog , Ptrciclo , Ptrsecuencia)
+            Set Iniauto.0
+            Incr Ptrsecuencia
+            Ptrsecuencia = Ptrsecuencia Mod Numsec
+            If Ptrsecuencia = 0 Then
+               Reset Iniciclo
+               Inicicloant = Iniciclo
+               Print #1 , "FIN Ciclo"
+               Call Resetreles()
+            End If
+         End If
       End If
    End If
 
-   If Inisecuencia = 1 Then
-      Print #1 , "Ini Sec"
-      Reset Inisecuencia
-      Print #1 , "Fin Sec"
+   If Iniauto.0 = 1 Then
+      Reset Iniauto.0
+      Print #1 , "TXAUT1"
+      Call Txauto(1)
+
    End If
+
+   If Iniauto.1 = 1 Then
+      Reset Iniauto.1
+      Print #1 , "TXAUT2"
+      Call Txauto(2)
+
+   End If
+
+   If Iniauto.2 = 1 Then
+      Reset Iniauto.2
+      Print #1 , "TXAUT3"
+
+   End If
+
+   If Iniauto.3 = 1 Then
+      Reset Iniauto.3
+      Print #1 , "TXAUT4"
+   End If
+
+   If Iniactclk = 1 Then
+      Reset Iniactclk
+      Print #1 , "ACT CLK"
+      Atsnd = "GETNTP,1,2,3"
+      Tmpw = Len(atsnd)
+      Tmpcrc32 = Crc32(atsnd , Tmpw)
+      Atsnd = Atsnd + "&" + Hex(tmpcrc32)                   '+ Chr(10)
+      Print #1 , "%" ; Atsnd
+      Print #3 , "%" ; Atsnd
+   End If
+
+   If Iniack = 1 Then                                       'ACK MDC
+      Reset Iniack
+      Atsnd = "ACK,1,2,3"
+      Tmpw = Len(atsnd)
+      Tmpcrc32 = Crc32(atsnd , Tmpw)
+      Atsnd = Atsnd + "&" + Hex(tmpcrc32) + Chr(10)
+      Print #1 , "$" ; Atsnd
+      Print #3 , "$" ; Atsnd
+      Call Txrpi()
+   End If
+
+   If Sndnumprg = 1 Then
+      Reset Sndnumprg
+      Atsnd = "LEEPRG," + Str(enaprog) + ",3,4"
+      Tmpw = Len(atsnd)
+      Tmpcrc32 = Crc32(atsnd , Tmpw)
+      Atsnd = Atsnd + "&" + Hex(tmpcrc32)                   '+ Chr(10)
+      Print #1 , "%" ; Atsnd
+      Print #3 , "%" ; Atsnd
+   End If
+
 
    If Inivariables = 1 Then
       Reset Inivariables
       Call Inivar()
+   End If
+
+   If Inisampleht = 1 Then
+      Reset Inisampleht
+      Call Get_humidity()
+      If Enabug.3 = 1 Then
+         Print #1 , "H=" ; Humidity ; " , T=" ; Temperature
+      End If
    End If
 
 

@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 269
+$projecttime = 461
 
 
 '*******************************************************************************
@@ -25,14 +25,32 @@ Declare Sub Defaultvalues()
 Declare Sub Vercfg()
 Declare Sub Leeidserial()
 Declare Sub Inihorainicio()
+Declare Sub Get_humidity()
+Declare Sub Txrpi
+Declare Sub Txauto(byval Numtx As Byte)
+Declare Sub Tx0()
+Declare Sub Tx1()
+Declare Sub Tx2()
+Declare Sub Tx3()
+Declare Sub Tx4()
+Declare Sub Procrpi()
+Declare Sub Verackesp32()
+Declare Sub Outreles(byval Numprograma As Byte , Byval Numciclo As Byte , Byval Numsecuencia As Byte)
+Declare Sub Data2disp()
+Declare Sub Resetreles()
+
 
 '*******************************************************************************
 'Declaracion de variables
 '*******************************************************************************
 Dim Tmpb As Byte , Tmpb2 As Byte , Tmpb3 As Byte , Tmpb4 As Byte
 Dim J As Byte , K As Byte , K1 As Byte , N As Byte
-Dim Tmpl As Long, Tmpl2 As Lon
+Dim Tmpl As Long , Tmpl2 As Long
 Dim Tmpw As Word , Tmpw2 As Word
+Dim Tmpcrc32 As Long
+
+Dim Trytx As Byte
+Dim Txok As Bit
 
 Dim Jt0 As Byte , Jt1 As Byte
 
@@ -62,24 +80,29 @@ Dim Enaprog As Byte                                         'hAB DE PROGRAMAS DE
 Dim Enaprogeep As Eram Byte
 Dim Habdiasem(numprog) As Byte                              'Habilitación día de semana por prgrama
 Dim Habdiasemeep(numprog) As Eram Byte
+Dim Habdiasemtmp As Byte
 Dim Horariego(numhoras) As Long
 Dim Horariegoeep(numhoras) As Eram Long
 Dim Tiemporiego As Word
+Dim Cntrticks As Word
 Dim Tiemporiegoeep As Eram Word
 Dim Secriego(numsecriego) As Byte
 Dim Secriegoeep(numsecriego) As Eram Byte
 Dim Diasemana As Byte
 Dim Diasemanaant As Byte
+Dim Habdiaria As Bit
 Dim Horainicio(numhorariego) As Long                        ' Horarios riego iniciales
 Dim Timestr As String * 10
 Dim Inisecuencia As Bit
-
-
-
+Dim Newsecuencia As Bit
+Dim Iniciclo As Bit , Inicicloant As Bit
+Dim Ptrciclo As Byte
+Dim Ptrsecuencia As Byte , Ptrsecuenciaant As Byte
 'Variables para transmisiones automáticas
 Dim Autoval(numtxaut) As Long , Autovaleep(numtxaut) As Eram Long
 Dim Offset(numtxaut) As Long , Offseteep(numtxaut) As Eram Long
 Dim Tmpvaltb As String * 32
+Dim Sndnumprg As Bit
 
 'ADC
 Dim Adcn As Byte , Adct As Byte
@@ -112,16 +135,22 @@ Dim Humedadstrant As String * 8
 Dim Tempstrant As String * 8
 Dim Cntrerrht As Byte
 Dim Cntrerrtemp As Byte
+Dim Tout2 As Bit
+Dim Init2 As Bit
+Dim Tcntr2 As Word
 
 'Variables TIMER0
 Dim T0c As Byte
 Dim Num_ventana As Byte
 Dim Estado As Long
-Dim Estado_led(nleds) As Byte
+Dim Estado_led As Byte
 Dim Iluminar As Bit
 Dim Newsec As Byte
 Dim Kt0 As Byte
 Dim Cntrseg As Byte
+Dim T0cntr As Word
+Dim T0tout As Bit , T0ini As Bit
+Dim T0rate As Word
 
 'timer1
 Dim Lsyssec As Long
@@ -134,6 +163,24 @@ Dim Tack As Byte
 Dim Iniack As Bit
 Dim Tackeep As Eram Byte
 
+Dim Enabug As Byte
+Dim Enabugeep As Eram Byte
+
+Dim Cntrini As Word
+Dim Cntrinieep As Eram Word
+
+Dim Cntresp32rst As Word
+Dim Cntresp32rsteep As Eram Word
+Dim Cntrackesp32 As Word
+Dim Cntrrstmdm As Byte
+'Dim Cntrrstmdmant As Byte
+Dim Outtemppol As Byte
+Dim Outtemppoleep As Eram Byte
+
+'Variables SERIAL 1
+Dim Rpi_ini As Bit , Rpinew As Bit
+Dim Rpirx As Byte
+Dim Rpidata As String * 140 , Rpiproc As String * 140
 
 'Variables SERIAL0
 Dim Ser_ini As Bit , Sernew As Bit
@@ -182,8 +229,39 @@ At_ser1:
 
 Return
 
+'*******************************************************************************
+' Subrutina interrupcion de puerto serial 3
+'*******************************************************************************
+
+At_ser2:
+   Rpirx = Udr1
+   Select Case Rpirx
+      Case "%"
+         Set Rpi_ini
+         Rpidata = ""
+
+      Case 13:
+         If Rpi_ini = 1 Then
+            Rpi_ini = 0
+            Rpidata = Rpidata + Chr(0)
+            Rpiproc = Rpidata
+            If Rpiproc = "OK" Then Set Txok
+            Set Rpinew
+         End If
+
+      Case Is > 31
+         If Rpi_ini = 1 Then
+            Rpidata = Rpidata + Chr(rpirx)
+           If Len(rpidata) > 140 Then
+               Rpidata = ""
+            End If
+
+         End If
+
+   End Select
 
 Return
+
 
 '*******************************************************************************
 
@@ -198,22 +276,27 @@ Int_timer0:
    T0c = T0c Mod 8
    If T0c = 0 Then
       Num_ventana = Num_ventana Mod 32
-      For Kt0 = 1 To Nleds
-         Estado = Lookup(estado_led(k) , Tabla_estado)
-         Iluminar = Estado.num_ventana
-         'Toggle Iluminar
-         Select Case Kt0
-            Case 1:
-               Led1 = Iluminar
-            Case 2:
-               Led2 = Iluminar
-            Case 3:
-               Led3 = Iluminar
-            Case 4:
-               Ledsta = Iluminar
-         End Select
-      Next
+      Estado = Lookup(estado_led , Tabla_estado)
+      Iluminar = Estado.num_ventana
+      Led1 = Iluminar
       Incr Num_ventana
+   End If
+
+   If Init2 = 1 Then
+      Incr Tcntr2
+      Tcntr2 = Tcntr2 Mod 505
+      If Tcntr2 = 0 Then
+         Set Tout2
+      End If
+   End If
+
+   If T0ini = 1 Then
+      Incr T0cntr
+      If T0cntr = T0rate Then
+         Set T0tout
+      End If
+   Else
+      T0cntr = 0
    End If
 Return
 
@@ -228,8 +311,8 @@ Int_timer1:
    Tmpltime = Secofday(timestr)
    For Tt2 = 1 To Numhorariego
       If Tmpltime = Horainicio(tt2) Then
-         Set Inisecuencia
-         'Ptrcomida = Tt2
+         Set Iniciclo
+         Ptrciclo = Tt2
       End If
    Next
 
@@ -263,6 +346,15 @@ Int_timer1:
       Set Inisampleht
    End If
 
+   If Inisecuencia = 1 Then
+      Incr Cntrticks
+      Cntrticks = Cntrticks Mod Tiemporiego
+      If Cntrticks = 0 Then
+         Set Newsecuencia
+      End If
+
+   End If
+
 Return
 
 
@@ -286,18 +378,19 @@ Return
 '*******************************************************************************
 Sub Inivar()
    Reset Led1
-   Print #1 , "************ LORA-BOMBA ************"
+   Print #1 , "************ RIEGO ************"
    Print #1 , Version(1)
    Print #1 , Version(2)
    Print #1 , Version(3)
 
-   Estado_led(1) = 0
-   Estado_led(2) = 0
-   Estado_led(3) = 0
-   Estado_led(4) = 1
-
    Horamin = Horamineep
    Print #1 , "Ultima ACT CLK " ; Date(horamin) ; "," ; Time(horamin)
+   Tactclk = Tactclkeep
+   Print #1 , "Tiempo Consulta CLK a MDC=" ; Tactclk
+
+
+   Tack = Tackeep
+   Print #1 , "Tiempo Consulta ACK=" ; Tack
 
    For Tmpb = 1 To Numprog
       Habdiasem(tmpb) = Habdiasemeep(tmpb)
@@ -313,7 +406,9 @@ Sub Inivar()
          Tmpw = Tmpw + K
          Tmpl = Horariegoeep(tmpw)
          Horariego(tmpw) = Tmpl
-         Print #1 , "Hora " ; K ; "=" ; Time(tmpl) ; ",  " ; Tmpw
+         If Enabug.0 = 1 Then
+            Print #1 , "Hora " ; K ; "=" ; Time(tmpl) ; ",  " ; Tmpw
+         End If
       Next
    Next
 
@@ -331,7 +426,9 @@ Sub Inivar()
          For N = 1 To Numsec
             Ptrsec = Tmpw + N
             Secriego(ptrsec) = Secriegoeep(ptrsec)
-            Print #1 , "SEC " ; N ; "=" ; Bin(secriego(ptrsec)) ; ", " ; Ptrsec
+            If Enabug.0 = 1 Then
+               Print #1 , "SEC " ; N ; "=" ; Bin(secriego(ptrsec)) ; ", " ; Ptrsec
+            End If
          Next
       Next
    Next
@@ -369,12 +466,24 @@ Sub Inivar()
       Offset(tmpb) = Offseteep(tmpb)
       Print #1 , "Aut" ; Tmpb ; "=" ; Autoval(tmpb) ; ", OFF" ; Tmpb ; "=" ; Offset(tmpb)
    Next
+   Enabug = Enabugeep
+   Print #1 , "ENABUG=" ; Enabug
+
+   Cntrini = Cntrinieep
+   Incr Cntrini
+   Print #1 , "CNTRINI:" ; Cntrini
+   Cntrinieep = Cntrini
+
+   Outtemppol = Outtemppoleep
+   Print #1 , "OUT POLaridad Reles Teporizados=" ; Bin(outtemppol)
 
 End Sub
 
 Sub Inihorainicio()
    J = Enaprog
    Print #1 , "Prog " ; J
+   Habdiasemtmp = Habdiasem(j)
+   Print #1 , "HabDiaSemana=" ; Bin(habdiasemtmp)
    For K = 1 To Numhorariego
       Tmpw = J - 1
       Tmpw = Tmpw * 4
@@ -387,7 +496,55 @@ Sub Inihorainicio()
 End Sub
 
 
+Sub Outreles(byval Numprograma As Byte , Byval Numciclo As Byte , Byval Numsecuencia As Byte)
+   Local Ptrw As Word , Ptrw2 As Word , Tmpout As Byte
+   Ptrw = Numprograma - 1
+   Ptrw = Ptrw * 32
+   Ptrw2 = Numciclo - 1
+   Ptrw2 = Ptrw2 * 8
+   Ptrw = Ptrw + Ptrw2
+   Ptrw = Ptrw + Numsecuencia
+   Ptrw = Ptrw + 1
+   Tmpout = Secriego(ptrw)
+   Print #1 , "SEC" ; Numsecuencia ; "=" ; Bin(tmpout) ; "," ; Ptrw
+   Ev1 = Tmpout.0
+   Ev2 = Tmpout.1
+   Ev3 = Tmpout.2
+   Ev4 = Tmpout.3
+   Ev5 = Tmpout.4
+   Ev6 = Tmpout.5
 
+End Sub
+
+Sub Resetreles()
+   Reset Ev1
+   Reset Ev2
+   Reset Ev3
+   Reset Ev4
+   Reset Ev5
+   Reset Ev6
+
+End Sub
+
+Sub Data2disp()
+   Tmpstr52 = Date$
+   Tmpstr52 = Tmpstr52 + " " + Time$ + " "
+   Lcdat 1 , 1 , Tmpstr52
+   Tmpstr52 = "P" + Str(enaprog) + ", L" + Str(habdiasemtmp.0) + "M" + Str(habdiasemtmp.1) + "M" + Str(habdiasemtmp.2)
+   Tmpstr52 = Tmpstr52 + "J" + Str(habdiasemtmp.3) + "V" + Str(habdiasemtmp.4) + "S" + Str(habdiasemtmp.5) + "D" + Str(habdiasemtmp.6) + " "
+   Lcdat 3 , 1 , Tmpstr52
+   Tmpl = Horainicio(1)
+   Tmpstr52 = Time(tmpl) + " "
+   Tmpl = Horainicio(2)
+   Tmpstr52 = Tmpstr52 + Time(tmpl) + " "
+   Lcdat 5 , 1 , Tmpstr52
+   Tmpl = Horainicio(3)
+   Tmpstr52 = Time(tmpl) + " "
+   Tmpl = Horainicio(4)
+   Tmpstr52 = Tmpstr52 + Time(tmpl) + " "
+   Lcdat 7 , 1 , Tmpstr52
+
+End Sub
 
 Sub Defaultvalues()
    Enaprogeep = 1                                           'Programa Actual 1
@@ -451,7 +608,16 @@ Sub Defaultvalues()
          Next
       Next
    Next
+   Enabugeep = 0
 
+   Tmpb = 0
+   For J = 1 To Numtxaut
+      Autoval(j) = 300
+      Autovaleep(j) = Autoval(j)
+      Offset(j) = Tmpb
+      Offseteep(j) = Offset(j)
+      Tmpb = Tmpb + 60
+   Next
 
 End Sub
 
@@ -551,17 +717,12 @@ Sub Procser()
             Atsnd = "ID ser <" + Idserial + ">"
 
          Case "SETLED"
-            If Numpar = 3 Then
+            If Numpar = 2 Then
                Tmpb = Val(cmdsplit(2))
-               If Tmpb > 0 And Tmpb < Nleds_masuno Then
-                  Tmpb2 = Val(cmdsplit(3))
-                  If Tmpb2 < 17 Then
-                     Cmderr = 0
-                     Atsnd = "Se configura led" + Str(tmpb) + "=" + Str(tmpb2)
-                     Estado_led(tmpb) = Tmpb2
-                  Else
-                     Cmderr = 6
-                  End If
+               If Tmpb < 17 Then
+                  Cmderr = 0
+                  Atsnd = "Se configura setled a " + Str(tmpb)
+                  Estado_led = Tmpb
                Else
                   Cmderr = 5
                End If
@@ -758,6 +919,7 @@ Sub Procser()
                   Enaprogeep = Enaprog
                   Atsnd = "Se config Programa Actual a " + Str(enaprog)
                   Call Inihorainicio()
+                  Set Iniauto.1
                Else
                   Cmderr = 5
                End If
@@ -768,6 +930,36 @@ Sub Procser()
          Case "LEEPRG"
             Cmderr = 0
             Atsnd = "Prog Actual=" + Str(enaprog)
+            Set Sndnumprg
+
+
+         Case "SETSEM"
+            If Numpar = 3 Then
+               Tmpb2 = Val(cmdsplit(2))                     'Numero de programa
+               If Tmpb2 > 0 And Tmpb2 < Numprog_masuno Then
+                  Cmderr = 0
+                  Habdiasem(tmpb2) = Binval(cmdsplit(3))
+                  Habdiasemeep(tmpb2) = Habdiasem(tmpb2)
+                  Atsnd = "Se config Hab Semana de Prog" + Str(enaprog) + " a " + Bin(habdiasem(tmpb2))
+                  Call Inihorainicio()
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEESEM"
+            If Numpar = 2 Then
+               If Tmpb2 > 0 And Tmpb2 < Numprog_masuno Then
+                  Cmderr = 0
+                  Atsnd = "Hab Semana de Prog" + Str(enaprog) + " = " + Bin(habdiasem(tmpb2))
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
 
          Case "SETAUT"
             If Numpar = 3 Then
@@ -876,10 +1068,16 @@ Sub Procser()
             Atsnd = "Tact CLK=" + Str(tactclk)
             Tmpvaltb = Str(tactclk)
 
+         Case "ACTCLK"
+            Cmderr = 0
+            Set Iniactclk
+            Atsnd = "ACT CLK"
+
          Case "SETACK"
             If Numpar = 2 Then
-               Tactclk = Val(cmdsplit(2))
-               Tactclkeep = Tactclk
+               Cmderr = 0
+               Tack = Val(cmdsplit(2))
+               Tackeep = Tack
                Atsnd = "Se configuro Tak=" + Str(tack)
                Tmpvaltb = Str(tack)
             Else
@@ -895,6 +1093,95 @@ Sub Procser()
             Cmderr = 0
             Set Iniack
             Atsnd = "Nuevo ACK"
+
+         Case "SETBUG"
+            If Numpar = 2 Then
+               Cmderr = 0
+               Enabug = Val(cmdsplit(2))
+               Enabugeep = Enabug
+               Atsnd = "Se configuro ENABUG=" + Str(enabug)
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEBUG"
+            Cmderr = 0
+            Atsnd = "ENABUG=" + Str(enabug)
+
+         Case "SETINI"
+            If Numpar = 2 Then
+               Cntrini = Val(cmdsplit(2))
+               Cntrinieep = Cntrini
+               Cmderr = 0
+               Atsnd = "Se configuro Contador Inicios: " + Str(cntrini)
+               Tmpvaltb = Str(cntrini)
+               Set Iniauto.1
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEINI"
+            If Numpar = 1 Then
+               Cmderr = 0
+               Atsnd = "Contador inicios <" + Str(cntrini) + ">"
+               Tmpvaltb = Str(cntrini)
+            Else
+               Cmderr = 4
+            End If
+
+
+         Case "SETESP"
+            If Numpar = 2 Then
+               Tmpb = Val(cmdsplit(2))
+               If Tmpb < 2 Then
+                  Cmderr = 0
+                  If Tmpb = 0 Then
+                     Reset Esp32rst
+                  Else
+                     Set Esp32rst
+                  End If
+                  Atsnd = "RSTESP32=" + Str(esp32rst)
+                  'Tmpvaltb = Str(esp32rst)
+               Else
+                  Cmderr = 3
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+
+         Case "SETCES"
+            If Numpar = 2 Then
+               Cmderr = 0
+               Cntrackesp32 = Val(cmdsplit(2))
+               Atsnd = "Se conf. Cntrackesp32=" + Str(cntrackesp32)
+               'Tmpvaltb = Str(cntrackesp32)
+            Else
+               Cmderr = 4
+            End If
+
+
+         Case "SETCRE"                                      'Contador RST ESP32
+            If Numpar = 2 Then
+               Cmderr = 0
+               Cntresp32rst = Val(cmdsplit(2))
+               Cntresp32rsteep = Cntresp32rst
+               Atsnd = "Se conf. CNTR_ESP32_RST=" + Str(cntresp32rst)
+               'Tmpvaltb = Str(cntrackesp32)
+               'Set Iniauto.1
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEECRE"
+            Cmderr = 0
+            Atsnd = "CNTR_ESP32_RST=" + Str(cntresp32rst) + ", CNTRack=" + Str(cntrackesp32) + ", CNTRrstmdm=" + Str(cntrrstmdm)
+            'Tmpvaltb = Str(cntrackesp32)
+
+         Case "SETCRM"                                      'Utilizado para simular
+            Cmderr = 0
+            Cntrrstmdm = Val(cmdsplit(2))
+            Atsnd = "Se CNTRrstmdm=" + Str(cntrrstmdm)
 
 
          Case Else
@@ -1021,6 +1308,312 @@ Sub Settimeds3231()
   End If
  End Sub
  '----------------------
+
+
+'===============================================================================
+'=============================== DHT11/DHT22 ===================================
+Sub Get_humidity()
+   Local Number_dht As Byte , Byte_dht As Byte , Dht_single As Single
+   'Local Errorrh As Byte
+
+   Set Dht_io_set                                           'bus is output
+   Reset Dht_put : Waitms 1                                 'bus=0
+   Set Dht_put : Waitus 40                                  'bus=1
+   Reset Dht_io_set : Waitus 40                             'bus is input
+   If Dht_get = 1 Then                                      'not DHT22?
+      Set Dht_io_set                                        'bus is output
+      Reset Dht_put : Waitms 20                             'bus=0
+      Set Dht_put : Waitus 40                               'bus=1
+      Reset Dht_io_set : Waitus 40                          'bus is input
+      If Dht_get = 1 Then
+         Temperature = ""
+         Humidity = ""                                      'DHT11 not response!!!
+         Errorrh = 1
+         Exit Sub
+      End If
+      Waitus 80
+      If Dht_get = 0 Then
+         Temperature = ""
+         Humidity = ""                                      'DHT11 not response!!!
+         Errorrh = 1
+         Exit Sub
+      Else
+         Dht_type = 11                                      'really DHT11
+      End If
+   Else
+      Waitus 80
+      If Dht_get = 0 Then
+         Temperature = ""
+         Humidity = ""                                      'DHT22 not response!!!
+         Errorrh = 1
+         Exit Sub
+      Else
+         Dht_type = 22                                      'really DHT22
+      End If
+   End If
+
+   'Bitwait Dht_get , Reset                                  'wait for transmission
+   Tcntr2 = 0
+   Tout2 = 0
+   Set Init2
+   While Dht_get = 1 And Tout2 = 0
+   Wend
+
+   If Tout2 = 0 Then
+      Errorrh = 0
+      For Number_dht = 1 To 5
+         For Byte_dht = 7 To 0 Step -1
+            'Bitwait Dht_get , Set
+            Tcntr2 = 0
+            Tout2 = 0
+            Set Init2
+            While Dht_get = 0 And Tout2 = 0
+            Wend
+            If Tout2 = 0 Then
+               Waitus 35
+               If Dht_get = 1 Then
+                  Data_dht(number_dht).byte_dht = 1
+                  'Bitwait Dht_get , Reset
+                  Tcntr2 = 0
+                  Tout2 = 0
+                  Set Init2
+                  While Dht_get = 1 And Tout2 = 0
+                  Wend
+                  If Tout2 = 1 Then
+                     If Enabug.3 = 1 Then
+                        Print #1 , "ERR 3"
+                     End If
+                     Reset Init2
+                     Errorrh = 4
+                     Exit For
+                  End If
+               Else
+                  Data_dht(number_dht).byte_dht = 0
+               End If
+            Else
+               If Enabug.3 = 1 Then
+                  Print #1 , "ERR 2"
+               End If
+               Reset Init2
+               Errorrh = 3
+               Exit For
+            End If
+         Next
+         If Errorrh > 0 Then
+            Exit For
+         End If
+      Next
+      If Errorrh = 0 Then
+         Set Dht_io_set : Set Dht_put
+         If Dht_type = 22 Then                              'CRC check
+            Byte_dht = Data_dht(1) + Data_dht(2)
+            Byte_dht = Byte_dht + Data_dht(3)
+            Byte_dht = Byte_dht + Data_dht(4)
+         Else
+            Byte_dht = Data_dht(1) + Data_dht(3)
+         End If
+
+         If Byte_dht <> Data_dht(5) Then
+            Temperature = "ERR1"
+            Humidity = "ERR1"                               'CRC error!!!
+            Errorrh = 6
+         Else
+            If Dht_type = 22 Then
+               Dht_single = Data_dht(1) * 256
+               Dht_single = Dht_single + Data_dht(2)
+               Dht_single = Dht_single / 10
+               Humidity = Fusing(dht_single , "#.#")        ' + "%"
+               If Data_dht(3).7 = 1 Then
+                  Data_dht(3).7 = 0
+                  Temperature = "-"
+               Else
+                  Temperature = ""
+               End If
+               Dht_single = Data_dht(3) * 256
+               Dht_single = Dht_single + Data_dht(4)
+               Dht_single = Dht_single / 10
+               Temperature = Temperature + Fusing(dht_single , "#.#")       ' + "C"
+            Else
+               Temperature = Str(data_dht(3))               ' + " C"
+               Humidity = Str(data_dht(1))                  ' + " %"
+            End If
+         End If
+      Else
+            Temperature = ""
+            Humidity = ""                                   'CRC error!!!
+            Errorrh = 5
+      End If
+   Else
+      If Enabug.3 = 1 Then
+         Print #1 , "ERR 1"
+      End If
+      Reset Init2
+      Temperature = ""
+      Humidity = ""
+      Errorrh = 2
+   End If
+End Sub
+
+Sub Txrpi()
+   Trytx = 0
+   Reset Txok
+   Do
+      Incr Trytx
+      Print #1 , "Espera RPI " ; Trytx
+      T0rate = 100
+      T0cntr = 0
+      Set T0ini
+      Reset T0tout
+      Do
+         If Rpinew = 1 Then
+            Reset Rpinew
+            Print#1 , "RPItx>" ; Rpiproc
+            Call Procrpi()
+         End If
+         If Sernew = 1 Then
+            Reset Sernew
+            Print #1 , "SER1=" ; Serproc
+            Call Procser()
+         End If
+      Loop Until Txok = 1 Or T0tout = 1
+      Reset T0ini
+      If Txok = 0 Then
+         Print #1 , "$" ; Atsnd
+         Print #3 , "$" ; Atsnd
+      End If
+   Loop Until Txok = 1 Or Trytx = 3
+
+   Reset T0ini
+   Reset Txok
+
+End Sub
+
+'*******************************************************************************
+' Procesamiento de datos del RPi
+'*******************************************************************************
+Sub Procrpi()
+   'Cntrackesp32 = 0
+   'Cntrrstmdm = 0
+   Numpar = Split(rpiproc , Cmdsplit(1) , ";")
+   If Numpar > 0 Then
+      Cmdtmp = Cmdsplit(1)
+   Else
+      Cmdtmp = Rpiproc
+   End If
+   '   Cmdtmp = "nocmd"
+   'Else
+      'Cmdtmp = Cmdsplit(1)
+
+  ' End If
+   Select Case Cmdtmp
+      Case "OK"
+         Set Txok
+         Cntrackesp32 = 0
+
+      Case "ERR"
+         Reset Txok
+         Cntrackesp32 = 0
+
+      Case "OKW"
+         Cntrrstmdm = 0
+
+      Case "ERRW"
+         Incr Cntrrstmdm
+
+      Case "SETMBD"
+         Cntrackesp32 = 0
+         Set Sernew
+         'Set Resptb
+         Serproc = Cmdsplit(2)
+         Print #1 , "NEW MDC CMD"
+
+      Case Else
+         Print #1 , "No cmd val"
+
+   End Select
+
+End Sub
+
+'*******************************************************************************
+'TX PERIODICA DE DATOS
+'*******************************************************************************
+Sub Txauto(byval Numtx As Byte)
+   Print #1 , "TXAUT" ; Numtx ; ";" ; Time$ ; "," ; Date$
+   Select Case Numtx
+      Case 1:                                               'TXAUT1
+         Call Tx1()
+      Case 2:
+         Call Tx2()
+      Case 3:
+         Call Tx3()
+      Case 4:
+         Call Tx4()
+      Case Else:
+         Print #1 , "No proc Numtx"
+   End Select
+End Sub
+
+Sub Tx1()
+   Fechaed = Date$
+   Horaed = Time$
+   Atsnd = "D" + "," + Fechaed + "," + Horaed + "," + Idserial + "-1"
+   Atsnd = Atsnd + "," + Str(ev1) + "," + Str(ev2) + "," + Str(ev3) + "," + Str(ev4)
+   Atsnd = Atsnd + "," + Str(ev5) + "," + Str(ev6) + ",,"
+   Tmpw = Len(atsnd)
+   Tmpcrc32 = Crc32(atsnd , Tmpw)
+   Atsnd = Atsnd + "&" + Hex(tmpcrc32) + Chr(10)
+   Print #1 , "$" ; Atsnd
+   Print #3 , "$" ; Atsnd
+   Call Txrpi()
+
+
+End Sub
+
+Sub Tx2()
+   Fechaed = Date$
+   Horaed = Time$
+   Atsnd = "2" + "," + Fechaed + "," + Horaed + "," + Idserial + "-2"
+   Atsnd = Atsnd + "," + Humidity + "," + Temperature + "," + Str(cntrini) + "," + Str(cntresp32rst)
+   Atsnd = Atsnd + "," + Str(enaprog) + "," + "," + ","
+   Tmpw = Len(atsnd)
+   Tmpcrc32 = Crc32(atsnd , Tmpw)
+   Atsnd = Atsnd + "&" + Hex(tmpcrc32) + Chr(10)
+   Print #1 , "$" ; Atsnd
+   Print #3 , "$" ; Atsnd
+   Call Txrpi()
+
+End Sub
+
+Sub Tx3()
+
+End Sub
+
+Sub Tx4()
+
+End Sub
+
+'*******************************************************************************
+Sub Verackesp32()
+   Incr Cntrackesp32
+   Cntrackesp32 = Cntrackesp32 Mod 600
+   'Tmpw = Cntrackesp32 Mod 10
+   'If Tmpw = 0 Then
+   '   Print #1 , "CNTRACK=" ; Cntrackesp32
+   'End If
+   If Cntrackesp32 = 0 Then
+      Print #1 , "RST esp32"
+      Incr Cntresp32rst
+      Cntresp32rsteep = Cntresp32rst
+      Print #1 , "CNTRrst=" ; Cntresp32rst
+      'Print #1 , "********** DEBUG *****************************"
+      Reset Esp32rst
+      Print #1 , "RSTESP=0"
+      Wait 1
+      Set Esp32rst
+      Print #1 , "RSTESP=1"
+   End If
+End Sub
+
 
 '*******************************************************************************
 'TABLA DE DATOS
