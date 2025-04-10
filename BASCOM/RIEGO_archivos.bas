@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 461
+$projecttime = 537
 
 
 '*******************************************************************************
@@ -38,6 +38,8 @@ Declare Sub Verackesp32()
 Declare Sub Outreles(byval Numprograma As Byte , Byval Numciclo As Byte , Byval Numsecuencia As Byte)
 Declare Sub Data2disp()
 Declare Sub Resetreles()
+Declare Sub Leered()
+Declare Sub Gentrama()
 
 
 '*******************************************************************************
@@ -48,6 +50,7 @@ Dim J As Byte , K As Byte , K1 As Byte , N As Byte
 Dim Tmpl As Long , Tmpl2 As Long
 Dim Tmpw As Word , Tmpw2 As Word
 Dim Tmpcrc32 As Long
+Dim Tmpbit As Bit
 
 Dim Trytx As Byte
 Dim Txok As Bit
@@ -124,6 +127,8 @@ Dim Tactclk As Long
 Dim Iniactclk As Bit
 Dim Tactclkeep As Eram Long
 
+
+
 'SENSOR HT
 Dim Data_dht(5) As Byte , Temperature As String * 10 , Humidity As String * 10 , Dht_type As Byte
 Dim Errorrh As Byte , Errorht As Byte
@@ -163,6 +168,18 @@ Dim Tack As Byte
 Dim Iniack As Bit
 Dim Tackeep As Eram Byte
 
+'TIMER2
+Dim Tmpbit2 As Bit
+'Dim T1tick As Byte
+Dim T1tmp As Byte
+Dim T1tmp0 As Byte
+Dim Cntrtredmenos(ednum) As Word
+Dim Cntrtredmas(ednum) As Word
+Dim Evmenos As Byte                                         ' Almacena en un bit nuevo evento de mas a menos
+Dim Evmas As Byte                                           ' Almacena en un bit nuevo evento de menos a mas
+Dim Tmped As Byte
+Dim Ct2 As Byte
+
 Dim Enabug As Byte
 Dim Enabugeep As Eram Byte
 
@@ -176,7 +193,40 @@ Dim Cntrrstmdm As Byte
 'Dim Cntrrstmdmant As Byte
 Dim Outtemppol As Byte
 Dim Outtemppoleep As Eram Byte
+'Variables ED
+Dim Jed As Byte
+Dim Tredmas(ednum) As Word
+Dim Tredmaseep(ednum) As Eram Word
+Dim Tredmenos(ednum) As Word
+Dim Tredmenoseep(ednum) As Eram Word
+Dim Edpol As Byte
+Dim Edpoleep As Eram Byte
+Dim Edname(ednum) As String * 6
+Dim Ednameeep(ednum) As Eram String * 6
+Dim Eddat As Byte
+Dim Edsta(ednum) As Byte
+Dim Edstaant(ednum) As Byte
+Dim Edhab As Byte
+Dim Edhabeep As Eram Byte
+Dim Hora_buf(numbuf) As Long
+Dim Ptrbuf As Byte
+Dim Ptrtx As Byte
+Dim Vin_buf(numbuf) As Single
+Dim Vbat_buf(numbuf) As Single
+Dim Tx_buf(numbuf) As Byte
+Dim Ed_buf(numbuf) As Byte
 
+Dim Tonnebul As Word
+Dim Tonnebuleep As Eram Word
+Dim Toffnebul As Word
+Dim Toffnebuleep As Eram Word
+Dim Cntrnebulon As Word
+Dim Cntrnebuloff As Word
+Dim Ininebul As Bit
+Dim Ininebulon As Bit
+Dim Ininebuloff As Bit
+Dim Ininebulonant As Bit
+Dim Ininebuloffant As Bit
 'Variables SERIAL 1
 Dim Rpi_ini As Bit , Rpinew As Bit
 Dim Rpirx As Byte
@@ -352,8 +402,29 @@ Int_timer1:
       If Cntrticks = 0 Then
          Set Newsecuencia
       End If
-
    End If
+
+   If Ininebul = 1 Then
+      If Ininebulon = 1 Then
+         Incr Cntrnebulon
+         Cntrnebulon = Cntrnebulon Mod Tonnebul
+         If Cntrnebulon = 0 Then
+            Set Ininebuloff
+            Reset Ininebulon
+         End If
+      End If
+
+      If Ininebuloff = 1 Then
+         Incr Cntrnebuloff
+         Cntrnebuloff = Cntrnebuloff Mod Toffnebul
+         If Cntrnebuloff = 0 Then
+            Set Ininebulon
+            Reset Ininebuloff
+         End If
+      End If
+   End If
+
+
 
 Return
 
@@ -367,6 +438,63 @@ Return
 Settime:
 Return
 
+'*******************************************************************************
+'TIMER 2
+'*******************************************************************************
+Int_timer2:
+   Timer2 = &H64                                            'Ints a 100 Hz si Prescale=1024
+   Incr Ct2
+   Ct2 = Ct2 Mod 10
+   If Ct2 = 0 Then
+      Tmpbit2 = Ed0 Xor Edpol.0
+      Eddat.0 = Tmpbit2
+      Tmpbit2 = Ed1 Xor Edpol.1
+      Eddat.1 = Tmpbit2
+      Tmpbit2 = Ed2 Xor Edpol.2
+      Eddat.2 = Tmpbit2
+      Tmpbit2 = Ed3 Xor Edpol.3
+      Eddat.3 = Tmpbit2
+
+      For T1tmp = 1 To Ednum
+         T1tmp0 = T1tmp - 1
+         Select Case Edsta(t1tmp)
+            Case 0:                                         'Normal
+               If Eddat.t1tmp0 = 0 Then
+                  Edsta(t1tmp) = 2
+               End If
+            Case 1:                                         'Alarma
+               If Eddat.t1tmp0 = 1 Then
+                  Edsta(t1tmp) = 3
+               End If
+            Case 2:                                         'Prealarma
+               If Eddat.t1tmp0 = 1 Then
+                  Edsta(t1tmp) = 0
+                  Cntrtredmenos(t1tmp) = 0
+               Else
+                  Incr Cntrtredmenos(t1tmp)
+                  Cntrtredmenos(t1tmp) = Cntrtredmenos(t1tmp) Mod Tredmenos(t1tmp)
+                  If Cntrtredmenos(t1tmp) = 0 Then
+                     Edsta(t1tmp) = 1
+                     Set Evmenos.t1tmp0
+                  End If
+               End If
+            Case 3:                                         'Prenormal
+               If Eddat.t1tmp0 = 0 Then
+                  Edsta(t1tmp) = 1
+                  Cntrtredmas(t1tmp) = 0
+               Else
+                  Incr Cntrtredmas(t1tmp)
+                  Cntrtredmas(t1tmp) = Cntrtredmas(t1tmp) Mod Tredmas(t1tmp)
+                  If Cntrtredmas(t1tmp) = 0 Then
+                     Edsta(t1tmp) = 0
+                     Set Evmas.t1tmp0
+                  End If
+               End If
+         End Select
+      Next
+   End If
+
+Return
 
 
 '*******************************************************************************
@@ -477,6 +605,25 @@ Sub Inivar()
    Outtemppol = Outtemppoleep
    Print #1 , "OUT POLaridad Reles Teporizados=" ; Bin(outtemppol)
 
+   For Tmpb = 1 To Ednum
+      Edname(tmpb) = Ednameeep(tmpb)
+      Print #1 , "EDname " ; Tmpb ; "=" ; Edname(tmpb)
+      Tredmas(tmpb) = Tredmaseep(tmpb)
+      Print #1 , "T red + ED " ; Tmpb ; "=" ; Tredmas(tmpb) ; "x 0.1s"
+      Tredmenos(tmpb) = Tredmenoseep(tmpb)
+      Print #1 , "T red - ED " ; Tmpb ; "=" ; Tredmenos(tmpb) ; "x 0.1s"
+      Edstaant(tmpb) = 5
+   Next
+
+   Edpol = Edpoleep
+   Print #1 , "EDpol=" ; Bin(edpol)
+   Edhab = Edhabeep
+   Print #1 , "EDhab=" ; Bin(edhab)
+
+   Tonnebul = Tonnebuleep
+   Print #1 , "TON nebul=" ; Tonnebul
+   Toffnebul = Toffnebuleep
+   Print #1 , "TOFF nebul=" ; Toffnebul
 End Sub
 
 Sub Inihorainicio()
@@ -619,6 +766,22 @@ Sub Defaultvalues()
       Tmpb = Tmpb + 60
    Next
 
+   For J = 1 To Ednum
+      Tmpstr52 = "ED" + Str(j)
+      Ednameeep(j) = Tmpstr52
+      Tredmaseep(j) = 10
+      Tredmenoseep(j) = 10
+      'Tmpstr52 = Lookupstr(j , Tbl_repmas)
+      'Txtrepmaseep(j) = Tmpstr52
+      'Tmpstr52 = Lookupstr(j , Tbl_repmenos)
+      'Txtrepmenoseep(j) = Tmpstr52
+   Next
+   Edpoleep = &B00001111
+   Edhabeep = &B00001111
+
+   Tonnebuleep = 60
+   Toffnebuleep = 30
+
 End Sub
 
 
@@ -730,7 +893,6 @@ Sub Procser()
                Cmderr = 4
             End If
 
-
         Case "SETCLK"
             If Numpar = 2 Then
                If Len(cmdsplit(2)) = 12 Then
@@ -830,10 +992,10 @@ Sub Procser()
 
          Case "SETTRI"
             If Numpar = 2 Then
-               Tmpb = Val(cmdsplit(2))
-               If Tmpb > 0 Then
+               Tmpw = Val(cmdsplit(2))
+               If Tmpw > 0 Then
                   Cmderr = 0
-                  Tiemporiego = Tmpb
+                  Tiemporiego = Tmpw
                   Atsnd = "Se configuro Triego=" + Str(tiemporiego)
                   Tiemporiegoeep = Tiemporiego
                Else
@@ -846,6 +1008,46 @@ Sub Procser()
          Case "LEETRI"
             Cmderr = 0
             Atsnd = "Triego=" + Str(tiemporiego)
+
+         Case "SETTON"
+            If Numpar = 2 Then
+               Tmpw = Val(cmdsplit(2))
+               If Tmpw > 0 Then
+                  Cmderr = 0
+                  Tonnebul = Tmpw
+                  Atsnd = "Se configuro TON nebul=" + Str(tonnebul)
+                  Tonnebuleep = Tonnebul
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEETON"
+            Cmderr = 0
+            Atsnd = "TON nebul=" + Str(tonnebul)
+
+         Case "SETTOF"
+            If Numpar = 2 Then
+               Tmpw = Val(cmdsplit(2))
+               If Tmpw > 0 Then
+                  Cmderr = 0
+                  Toffnebul = Tmpw
+                  Atsnd = "Se configuro TOFF nebul=" + Str(toffnebul)
+                  Toffnebuleep = Toffnebul
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEETOF"
+            Cmderr = 0
+            Atsnd = "TOFF nebul=" + Str(toffnebul)
+
+
 
          Case "SETSEC"
             If Numpar = 5 Then
@@ -1182,6 +1384,221 @@ Sub Procser()
             Cmderr = 0
             Cntrrstmdm = Val(cmdsplit(2))
             Atsnd = "Se CNTRrstmdm=" + Str(cntrrstmdm)
+
+         Case "ESTADO"
+            Cmderr = 0
+            Atsnd = "WATCHING INFORMA. "                    'ED1="
+
+            For Tmpb = 1 To Ednum
+               J = Tmpb - 1
+               If Edhab.j = 1 Then
+                  Tmpbit = Pina.j Xor Edpol.j
+                  Atsnd = Atsnd + Edname(tmpb) + "=" + Str(tmpbit) + ","
+               End If
+            Next
+
+         Case "SETHAB"
+            If Numpar = 4 Then
+               Tmpb2 = Val(cmdsplit(2))
+               Select Case Tmpb2
+                  Case 1:                                   'ED
+                     Tmpb = Val(cmdsplit(3))
+                     If Tmpb > 0 And Tmpb < Ednum_masuno Then
+                        Cmderr = 0
+                        Tmpb3 = Tmpb - 1
+                        Tmpb2 = Val(cmdsplit(4))
+                        If Tmpb2 = 0 Then
+                           Reset Edhab.tmpb3
+                        Else
+                           Set Edhab.tmpb3
+                        End If
+                        Edhabeep = Edhab
+                        Atsnd = "Se configuro HAB ED" + Str(tmpb) + "=" + Str(edhab.tmpb3)
+                     Else
+                        Cmderr = 5
+                     End If
+
+                  Case Else:
+                     Cmderr = 0
+                     Atsnd = " Hab entrada no implementado"
+               End Select
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEHAB"
+            Select Case Numpar
+               Case 1:
+                  Cmderr = 0
+                  Atsnd = "Hab ED=" + Bin(edhab)
+               Case 2:
+                  Tmpb2 = Val(cmdsplit(2))
+                  Select Case Tmpb2
+                     Case 1:                                'ED
+                        Cmderr = 0
+                        Atsnd = "Hab ED=" + Bin(edhab)
+                     Case Else:
+                        Cmderr = 0
+                        Atsnd = "Tipo entrada no val"
+
+                  End Select
+
+               Case 3:
+                  Tmpb2 = Val(cmdsplit(2))
+                  Select Case Tmpb2:
+                     Case 1:                                'ED
+                        Tmpb = Val(cmdsplit(3))
+                        If Tmpb > 0 And Tmpb < Ednum_masuno Then
+                           Cmderr = 0
+                           Tmpb3 = Tmpb - 1
+                           Cmderr = 0
+                           Atsnd = "HAB ED" + Str(tmpb) + "=" + Str(edhab.tmpb3)
+                        Else
+                           Cmderr = 5
+                        End If
+                     Case Else:
+                        Cmderr = 0
+                        Atsnd = "Hab entrada no valido"
+
+
+                  End Select
+               Case Else
+                  Cmderr = 4
+            End Select
+
+
+         Case "SETPOL"
+            If Numpar = 3 Then
+               Tmpb = Val(cmdsplit(2))
+               If Tmpb > 0 And Tmpb < Ednum_masuno Then
+                  Cmderr = 0
+                  Tmpb3 = Tmpb - 1
+                  Tmpb2 = Val(cmdsplit(3))
+                  If Tmpb2 = 0 Then
+                     Reset Edpol.tmpb3
+                  Else
+                     Set Edpol.tmpb3
+                  End If
+                  Edpoleep = Edpol
+                  Atsnd = "Se configuro POL ED" + Str(tmpb) + "=" + Str(edpol.tmpb3)
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEPOL"
+            Select Case Numpar
+               Case 1:
+                  Cmderr = 0
+                  Atsnd = "POL ED=" + Bin(edpol)
+               Case 2:
+                  Tmpb = Val(cmdsplit(2))
+                  If Tmpb > 0 And Tmpb < Ednum_masuno Then
+                     Tmpb3 = Tmpb - 1
+                     Cmderr = 0
+                     Atsnd = "POL ED" + Str(tmpb) + "=" + Str(edpol.tmpb3)
+                  Else
+                     Cmderr = 5
+                  End If
+               Case Else
+                  Cmderr = 4
+            End Select
+
+         Case "SETPAR"
+            If Numpar = 5 Then
+               Tmpb = Val(cmdsplit(2))
+               Tmpb2 = Val(cmdsplit(3))
+               Tmpb3 = Val(cmdsplit(4))
+
+               Select Case Tmpb
+                  Case 1:                                   ' ED
+                     If Tmpb2 > 0 And Tmpb2 < Ednum_masuno Then
+                        Select Case Tmpb3
+                           Case 1:                          'Nombre
+                              Edname(tmpb2) = Cmdsplit(5)
+                              Ednameeep(tmpb2) = Edname(tmpb2)
+                              Cmderr = 0
+                              Atsnd = "Se config nombre ED" + Str(tmpb2) + "=" + Edname(tmpb2)
+
+                           Case 2:                          ' Polaridad
+                              Tmpb4 = Val(cmdsplit(5))
+                              If Tmpb4 < 2 Then
+                                 J = Tmpb2 - 1
+                                 If Tmpb4 = 0 Then
+                                    Reset Edpol.j
+                                 Else
+                                    Set Edpol.j
+                                 End If
+                                 Edpoleep = Edpol
+                                 Cmderr = 0
+                                 Atsnd = "EDpol" + Str(tmpb2) + "=" + Str(edpol.j)
+                              Else
+                                 Cmderr = 0
+                                 Atsnd = "Valor de polaridad no valido"
+                              End If
+
+                           Case 3:                          ' Tactivacion +
+                              Tredmas(tmpb2) = Val(cmdsplit(5))
+                              Tredmaseep(tmpb2) = Tredmas(tmpb2)
+                              Cmderr = 0
+                              Atsnd = "Se config Tactivacion + ED" + Str(tmpb2) + "=" + Str(tredmas(tmpb2)) + "x100 ms"
+
+                           Case 4:                          'T activacion -
+                              Tredmenos(tmpb2) = Val(cmdsplit(5))
+                              Tredmenoseep(tmpb2) = Tredmenos(tmpb2)
+                              Cmderr = 0
+                              Atsnd = "Se config Tactivacion - ED" + Str(tmpb2) + "=" + Str(tredmenos(tmpb2)) + "x100 ms"
+
+
+                           Case Else
+                              Cmderr = 0
+                              Atsnd = "Parametro ED no valido"
+
+                        End Select
+                     Else
+                        Cmderr = 0
+                        Atsnd = "Num ED no valido"
+                     End If
+
+                  Case 3:                                   'MODBUS
+                     Cmderr = 0
+                     Atsnd = "MODBUS no implementado en esta version"
+
+                  Case Else:
+                     Cmderr = 0
+                     Atsnd = "Tipo de entrada incorrecto"
+
+               End Select
+
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEPAR"
+            If Numpar = 3 Then
+               Tmpb = Val(cmdsplit(2))
+               Tmpb2 = Val(cmdsplit(3))
+               Select Case Tmpb
+                  Case 1:
+                     Cmderr = 0                             'ED
+                     If Tmpb2 > 0 And Tmpb2 < Ednum_masuno Then
+                        J = Tmpb2 - 1
+                        Atsnd = "ED" + Str(tmpb2) + ";Nombre=" + Edname(tmpb2) + ";POL=" + Str(edpol.j) + ";Tact+=" + Str(tredmas(tmpb2)) + "x100ms ;Tact-=" + Str(tredmenos(tmpb2)) + "x100ms"
+                     Else
+                        Cmderr = 0
+                        Atsnd = "Num ED no valido"
+                     End If
+
+                  Case 3:                                   'MODBUS
+                     Cmderr = 0
+                     Atsnd = "MODBUS no implementado en esta version"
+               End Select
+            Else
+               Cmderr = 4
+            End If
+
 
 
          Case Else
@@ -1558,15 +1975,13 @@ Sub Tx1()
    Horaed = Time$
    Atsnd = "D" + "," + Fechaed + "," + Horaed + "," + Idserial + "-1"
    Atsnd = Atsnd + "," + Str(ev1) + "," + Str(ev2) + "," + Str(ev3) + "," + Str(ev4)
-   Atsnd = Atsnd + "," + Str(ev5) + "," + Str(ev6) + ",,"
+   Atsnd = Atsnd + "," + Str(ev5) + "," + Str(ev6) + "," + Str() + ","
    Tmpw = Len(atsnd)
    Tmpcrc32 = Crc32(atsnd , Tmpw)
    Atsnd = Atsnd + "&" + Hex(tmpcrc32) + Chr(10)
    Print #1 , "$" ; Atsnd
    Print #3 , "$" ; Atsnd
    Call Txrpi()
-
-
 End Sub
 
 Sub Tx2()
@@ -1574,7 +1989,7 @@ Sub Tx2()
    Horaed = Time$
    Atsnd = "2" + "," + Fechaed + "," + Horaed + "," + Idserial + "-2"
    Atsnd = Atsnd + "," + Humidity + "," + Temperature + "," + Str(cntrini) + "," + Str(cntresp32rst)
-   Atsnd = Atsnd + "," + Str(enaprog) + "," + "," + ","
+   Atsnd = Atsnd + "," + Str(enaprog) + "," + Str(tiemporiego) + "," + Str(tonnebul) + "," + Str(toffnebul)
    Tmpw = Len(atsnd)
    Tmpcrc32 = Crc32(atsnd , Tmpw)
    Atsnd = Atsnd + "&" + Hex(tmpcrc32) + Chr(10)
@@ -1585,11 +2000,61 @@ Sub Tx2()
 End Sub
 
 Sub Tx3()
-
+   Fechaed = Date$
+   Horaed = Time$
+   Atsnd = "D" + "," + Fechaed + "," + Horaed + "," + Idserial + "-3"
+   Atsnd = Atsnd + "," + Str(evriego) + "," + Str(evozono) + "," + Str(evnebul) + "," + Str(evrecirc)
+   Atsnd = Atsnd + "," + Str(evluzev) + "," + "," + "," +
+   Tmpw = Len(atsnd)
+   Tmpcrc32 = Crc32(atsnd , Tmpw)
+   Atsnd = Atsnd + "&" + Hex(tmpcrc32) + Chr(10)
+   Print #1 , "$" ; Atsnd
+   Print #3 , "$" ; Atsnd
+   Call Txrpi()
 End Sub
 
 Sub Tx4()
 
+End Sub
+
+Sub Gentrama()
+   Tmpl = Hora_buf(ptrtx)
+   Fechaed = Date(tmpl)
+   Horaed = Time(tmpl)
+   Atsnd = "D," + Fechaed + "," + Horaed + "," + Idserial + "-5"
+   If Edhab.0 = 1 Then
+      Tmpbit = Ed_buf(ptrtx).0
+      Atsnd = Atsnd + "," + Str(tmpbit)
+   Else
+      Atsnd = Atsnd + ","
+   End If
+   If Edhab.1 = 1 Then
+      Tmpbit = Ed_buf(ptrtx).1
+      Atsnd = Atsnd + "," + Str(tmpbit)
+   Else
+      Atsnd = Atsnd + ","
+   End If
+   If Edhab.2 = 1 Then
+      Tmpbit = Ed_buf(ptrtx).2
+      Atsnd = Atsnd + "," + Str(tmpbit)
+   Else
+      Atsnd = Atsnd + ","
+   End If
+   If Edhab.3 = 1 Then
+      Tmpbit = Ed_buf(ptrtx).3
+      Atsnd = Atsnd + "," + Str(tmpbit)
+   Else
+      Atsnd = Atsnd + ","
+   End If                                                   '+ Str(tmpbit)
+   Atsnd = Atsnd + "," + ","
+   Atsnd = Atsnd + ",,"
+
+   Tmpw = Len(atsnd)
+   Tmpcrc32 = Crc32(atsnd , Tmpw)
+   Atsnd = Atsnd + "&" + Hex(tmpcrc32)                      ' + Chr(10)
+   Print #1 , "$" ; Atsnd
+   Print #3 , "$" ; Atsnd
+   Call Txrpi()
 End Sub
 
 '*******************************************************************************
@@ -1613,6 +2078,78 @@ Sub Verackesp32()
       Print #1 , "RSTESP=1"
    End If
 End Sub
+
+'*******************************************************************************
+'Subrutina para leer ED
+'*******************************************************************************
+Sub Leered()
+   For Jed = 1 To Ednum
+      If Edstaant(jed) <> Edsta(jed) Then
+         Print #1 , "ED" ; Jed ; " de " ; Edstaant(jed) ; " a " ; Edsta(jed)
+         Edstaant(jed) = Edsta(jed)
+      End If
+   Next
+
+   For Tmped = 0 To Ednum_1
+      Jed = Tmped + 1
+      If Edhab.tmped = 1 Then
+         Tmpbit = Pina.tmped Xor Edpol.tmped
+         If Evmas.tmped = 1 Then
+            Reset Evmas.tmped
+            Tmpl = Syssec()
+            Horaed = Time$
+            Fechaed = Date$
+            Hora_buf(ptrbuf) = Tmpl
+            Print #1 , "Nuevo evento Mas en ED" ; Jed ; ";" ; Fechaed ; ";" ; Horaed
+            If Iniprocbat = 1 Then
+'               Gwsproc = Gwsproc + "," + Fusing(vinval , "#.##")
+               Vin_buf(ptrbuf) = Vinval
+               Vbat_buf(ptrbuf) = Vbatval
+            End If
+            Tmpbit = Ed0 Xor Edpol.0
+            Ed_buf(ptrbuf).0 = Tmpbit
+            Tmpbit = Ed1 Xor Edpol.1
+            Ed_buf(ptrbuf).1 = Tmpbit
+            Tmpbit = Ed2 Xor Edpol.2
+            Ed_buf(ptrbuf).2 = Tmpbit
+            Tmpbit = Ed3 Xor Edpol.3
+            Ed_buf(ptrbuf).3 = Tmpbit
+            Tx_buf(ptrbuf) = 1
+            Ptrbuf = Ptrbuf Mod Numbuf
+            Incr Ptrbuf
+            Print #1 , "PTRBUF+=" ; Ptrbuf
+         End If
+         If Evmenos.tmped = 1 Then
+            Reset Evmenos.tmped
+            Tmpl = Syssec()
+            Hora_buf(ptrbuf) = Tmpl
+            Horaed = Time$
+            Fechaed = Date$
+            Print #1 , "Nuevo evento Menos en ED" ; Jed ; ";" ; Fechaed ; ";" ; Horaed
+            If Iniprocbat = 1 Then
+'               Gwsproc = Gwsproc + "," + Fusing(vinval , "#.##")
+               Vin_buf(ptrbuf) = Vinval
+               Vbat_buf(ptrbuf) = Vbatval
+            End If
+            Tmpbit = Ed0 Xor Edpol.0
+            Ed_buf(ptrbuf).0 = Tmpbit
+            Tmpbit = Ed1 Xor Edpol.1
+            Ed_buf(ptrbuf).1 = Tmpbit
+            Tmpbit = Ed2 Xor Edpol.2
+            Ed_buf(ptrbuf).2 = Tmpbit
+            Tmpbit = Ed3 Xor Edpol.3
+            Ed_buf(ptrbuf).3 = Tmpbit
+            Tx_buf(ptrbuf) = 1
+            Ptrbuf = Ptrbuf Mod Numbuf
+            Incr Ptrbuf
+            Print #1 , "PTRBUF-=" ; Ptrbuf
+         End If
+      End If
+   Next
+
+End Sub
+
+
 
 
 '*******************************************************************************

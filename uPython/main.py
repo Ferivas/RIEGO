@@ -153,10 +153,10 @@ def mqtt_listener():
             #raise ValueError("¡Error en el hilo!") 
         except Exception as e:
   #          error_hilo = e
-             print("Err listener>",e)
              time.sleep(1)
              cntr_errhilo=cntr_errhilo+1
-             if cntr_errhilo==10:
+             print("Err listener>",e,",",cntr_errhilo)
+             if cntr_errhilo==120:
                  print("Reset ESP32")
                  machine.reset()
                  
@@ -350,6 +350,7 @@ cntr=0
 newrpc=False
 rqid=""
 rqbody={}
+tramaant=""
 while True:
   try:
     arxb=ser.readline()
@@ -384,67 +385,73 @@ while True:
             trama=lista[0].split(',')
             campos=["","","","","","","",""]
             if len(trama)==12:
-                valfeed=trama[4:]
-                fecha=trama[1]
-                hora=trama[2]
-                print("Trama IBT,",trama[0])
-                for iddata in listaibt: #1,81000001A3F8F401,677,FXKAIV0I2TTIVNLZ,TANQUERO,Juan Cevallos,1,,
-                    daaid=iddata.split(",")
-                    idtrama=trama[3]
-                    if daaid[1]==idtrama:
-                        apikey=daaid[2]
-                        #print("Token>",apikey)
-                        fields=daaid[4:12]
-                        print(fields)
-                        payload={}
-                        fechatb=fecha+','+hora
-                        print(fechatb)
-                        unix_time = fecha_a_unix(fechatb)
-                        valdata={}
-                        n=0
-                        #print("D1")
-                        if trama[0]!="D":
-                            for fval in fields:
-                                #print(n)
-                                if fval!="" and valfeed[n]!="" and valfeed[n]!="ERR1":
-                                    #print("fval>",fval,", val>",valfeed[n])
-                                    valdata[fval]=float(valfeed[n])
-                                n=n+1
-                        else:
-                            for fval in fields:
-                                #print(n)
-                                if fval!="" and valfeed[n]!="":
-                                    #print("fval>",fval,", val>",valfeed[n])
-                                    if valfeed[n]=="0":
-                                        valdata[fval]=False
-                                    elif valfeed[n]=="1":
-                                        valdata[fval]=True
-                                    else:
-                                        print("No data dig val")
-                                n=n+1
-                            
-                        #print("Valdata",valdata)    
-                        payload={"ts":unix_time, "values":valdata}
-                        print(payload)
-                        #postok=sndposttb(apikey,URL,payload)
-                        try:
-                            print("TX TB")
-                            client.send_telemetry(payload)
-                            print("fin tx tb")
-                            salida='%OKW\r\n'
-                            ser.write(salida)
-                        except:
-                            salida='%ERRW\r\n'
-                            ser.write(salida)
-                        print(salida)
-                            
-                        # if postok:
-                        #   salida='%OKW\r\n'
-                        #   ser.write(salida)
-                        # else:
-                        #   salida='%ERRW\r\n'
-                        #   ser.write(salida)                        
-            
+                if lista[0]!=tramaant:
+                    tramaant=lista[0]
+                    valfeed=trama[4:]
+                    fecha=trama[1]
+                    hora=trama[2]
+                    print("Trama IBT,",trama[0])
+                    for iddata in listaibt: #1,81000001A3F8F401,677,FXKAIV0I2TTIVNLZ,TANQUERO,Juan Cevallos,1,,
+                        daaid=iddata.split(",")
+                        idtrama=trama[3]
+                        if daaid[1]==idtrama:
+                            apikey=daaid[2]
+                            #print("Token>",apikey)
+                            fields=daaid[4:12]
+                            print(fields)
+                            payload={}
+                            fechatb=fecha+','+hora
+                            print(fechatb)
+                            unix_time = fecha_a_unix(fechatb)
+                            valdata={}
+                            n=0
+                            #print("D1")
+                            if trama[0]!="D":
+                                for fval in fields:
+                                    #print(n)
+                                    if fval!="" and valfeed[n]!="" and valfeed[n]!="ERR1":
+                                        #print("fval>",fval,", val>",valfeed[n])
+                                        try:
+                                            valdata[fval]=float(valfeed[n])
+                                        except:
+                                            print("Err formato")
+                                    n=n+1
+                            else:
+                                for fval in fields:
+                                    #print(n)
+                                    if fval!="" and valfeed[n]!="":
+                                        #print("fval>",fval,", val>",valfeed[n])
+                                        if valfeed[n]=="0":
+                                            valdata[fval]=False
+                                        elif valfeed[n]=="1":
+                                            valdata[fval]=True
+                                        else:
+                                            print("No data dig val")
+                                    n=n+1
+                                
+                            #print("Valdata",valdata)    
+                            payload={"ts":unix_time, "values":valdata}
+                            print(payload)
+                            #postok=sndposttb(apikey,URL,payload)
+                            try:
+                                print("TX TB")
+                                client.send_telemetry(payload)
+                                print("fin tx tb")
+                                salida='%OKW\r\n'
+                                ser.write(salida)
+                            except:
+                                salida='%ERRW\r\n'
+                                ser.write(salida)
+                            print(salida)
+                                
+                            # if postok:
+                            #   salida='%OKW\r\n'
+                            #   ser.write(salida)
+                            # else:
+                            #   salida='%ERRW\r\n'
+                            #   ser.write(salida)                        
+                else:
+                    print("No proc trama igual")
             else:
                 print("Trama no valida")
           else:

@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 191
+$version 0 , 1 , 227
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 80
@@ -15,7 +15,7 @@ $swstack = 80
 $framesize = 80
 $baud = 9600
 
-$projecttime = 229
+$projecttime = 290
 
 
 'Declaracion de constantes
@@ -41,6 +41,11 @@ Const Tsample = 1
 
 'HT
 Const Tsampleht = 5
+
+Const Ednum = 4
+Const Ednum_1 = Ednum - 1
+Const Ednum_masuno = Ednum + 1
+Const Numbuf = 8
 
 
 'Configuracion de entradas/salidas
@@ -83,6 +88,21 @@ Esp32rst Alias Portd.7
 Set Esp32rst
 Config Esp32rst = Output
 
+Ed0 Alias Pina.0
+Ed1 Alias Pina.1
+Ed2 Alias Pina.2
+Ed3 Alias Pina.3
+
+Config Ed0 = Input
+Config Ed1 = Input
+Config Ed2 = Input
+Config Ed3 = Input
+
+Set Porta.0
+Set Porta.1
+Set Porta.2
+Set Porta.3
+
 
 'Configuración de Interrupciones
 'TIMER0
@@ -95,6 +115,12 @@ Config Timer1 = Timer , Prescale = 1024
 On Timer1 Int_timer1
 Enable Timer1
 Start Timer1
+
+'Timer2
+Config Timer2 = Timer , Prescale = 1024                     'Ints a 100Hz si Timer0=&H64
+On Timer2 Int_timer2
+Enable Timer2
+Start Timer2
 
 ' Puerto serial 1
 Open "com1:" For Binary As #1
@@ -179,6 +205,57 @@ Do
       Call Procrpi()
    End If
 
+   Call Leered()
+   Ptrtx = Ptrtx Mod Numbuf
+   Incr Ptrtx
+
+   If Edsta(1) = 0 Then                                     'Prueba nivel para recirculación
+      Set Evrecirc
+      Set Evluzev
+   End If
+
+   If Edsta(1) = 1 Then
+      Reset Evrecirc
+      Reset Evluzev
+   End If
+
+   If Edsta(2) = 0 Then
+      Reset Evnebul
+      Reset Ininebul
+      Set Ininebulon
+   End If
+
+   If Edsta(2) = 1 Then
+      Set Ininebul
+   End If
+
+   If Ininebulon = 1 Then
+      Set Evnebul
+   End If
+
+   If Ininebulonant <> Ininebulon Then
+      Ininebulonant = Ininebulon
+      Print #1 , "Ininebulon=" ; Ininebulon
+      Set Iniauto.2
+   End If
+
+   If Ininebuloff = 1 Then
+      Reset Evnebul
+   End If
+
+   If Ininebuloffant <> Ininebuloff Then
+      Ininebuloffant = Ininebuloff
+      Print #1 , "IninebuloFF=" ; Ininebuloff
+      Set Iniauto.2
+   End If
+
+   If Tx_buf(ptrtx) = 1 Then
+      Print #1 , "Ptrtx=" ; Ptrtx
+      Tx_buf(ptrtx) = 0
+      Call Gentrama()
+      Set Iniauto.2
+   End If
+
    If Newsec = 1 Then
       Reset Newsec
       Incr K1
@@ -205,6 +282,8 @@ Do
             Set Inisecuencia
             Set Newsecuencia
             Ptrsecuencia = 0
+            Set Evriego
+            Set Evozono
          End If
 
          If Newsecuencia = 1 Then
@@ -241,6 +320,7 @@ Do
    If Iniauto.2 = 1 Then
       Reset Iniauto.2
       Print #1 , "TXAUT3"
+      Call Txauto(3)
 
    End If
 
