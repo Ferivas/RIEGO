@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 227
+$version 0 , 1 , 233
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 80
@@ -15,7 +15,7 @@ $swstack = 80
 $framesize = 80
 $baud = 9600
 
-$projecttime = 290
+$projecttime = 303
 
 
 'Declaracion de constantes
@@ -217,16 +217,24 @@ Do
    If Edsta(1) = 1 Then
       Reset Evrecirc
       Reset Evluzev
+
    End If
 
    If Edsta(2) = 0 Then
       Reset Evnebul
       Reset Ininebul
-      Set Ininebulon
+      Reset Ininebulon
+      Reset Ininebuloff
+      Reset Firstnebulon
    End If
 
    If Edsta(2) = 1 Then
       Set Ininebul
+      If Firstnebulon = 0 Then
+         Set Ininebulon
+         'Print #1 , "Ininebulon=1"
+         Set Firstnebulon
+      End If
    End If
 
    If Ininebulon = 1 Then

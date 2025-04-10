@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 537
+$projecttime = 539
 
 
 '*******************************************************************************
@@ -227,6 +227,7 @@ Dim Ininebulon As Bit
 Dim Ininebuloff As Bit
 Dim Ininebulonant As Bit
 Dim Ininebuloffant As Bit
+Dim Firstnebulon As Bit
 'Variables SERIAL 1
 Dim Rpi_ini As Bit , Rpinew As Bit
 Dim Rpirx As Byte
@@ -423,8 +424,6 @@ Int_timer1:
          End If
       End If
    End If
-
-
 
 Return
 
