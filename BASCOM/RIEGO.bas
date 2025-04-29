@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 233
+$version 0 , 1 , 238
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 80
@@ -15,7 +15,7 @@ $swstack = 80
 $framesize = 80
 $baud = 9600
 
-$projecttime = 303
+$projecttime = 308
 
 
 'Declaracion de constantes
@@ -46,6 +46,10 @@ Const Ednum = 4
 Const Ednum_1 = Ednum - 1
 Const Ednum_masuno = Ednum + 1
 Const Numbuf = 8
+
+Const Numrelaux = 3
+Const Numrelaux_masuno = Numrelaux + 1
+
 
 
 'Configuracion de entradas/salidas
@@ -79,6 +83,13 @@ Evrecirc Alias Portl.1
 Config Evrecirc = Output
 Evluzev Alias Portl.2
 Config Evluzev = Output
+
+Relaux1 Alias Portb.1
+Config Relaux1 = Output
+Relaux2 Alias Portb.2
+Config Relaux2 = Output
+Relaux3 Alias Portb.3
+Config Relaux3 = Output
 
 Dht_put Alias Portb.0 : Set Dht_put                         'Sensor pins
 Dht_get Alias Pinb.0

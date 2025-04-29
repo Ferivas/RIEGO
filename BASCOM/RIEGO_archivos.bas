@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 539
+$projecttime = 547
 
 
 '*******************************************************************************
@@ -1598,7 +1598,24 @@ Sub Procser()
                Cmderr = 4
             End If
 
+         Case "SETAUX"
+            Tmpb = Val(cmdsplit(2))
+            If Tmpb > 0 And Tmpb < Numrelaux_masuno Then
+               Tmpb2 = Val(cmdsplit(3))
+               If Tmpb2 < 2 Then
+                  If Tmpb2 = 0 Then
+                     Reset Portb.tmpb
+                  Else
+                     Set Portb.tmpb
+                  End If
 
+               Else
+                  Cmderr = 5
+               End If
+               Atsnd = "Se config Rel Aux " + Str(tmpb) + "=" + Str(tmpb2)
+            Else
+               Cmderr = 4
+            End If
 
          Case Else
             Cmderr = 1
