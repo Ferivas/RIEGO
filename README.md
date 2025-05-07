@@ -65,7 +65,7 @@ Esto permite escoger muchas combinaciones para configurar activaciones de grupo 
 * SEC7 : 00000000
 * SEC8 : 00000000
 
-En resumen se tienen 4 Programas de Riego, que se ejecutan diariamente si están habilitados. Cada programa permite configurar cuatro horarios de riego y en cada hoarario es posible establecer hasta 8 secuencias de riego para las electoválvulas.
+En resumen se tienen 4 Programas de Riego, que se ejecutan diariamente si están habilitados. Cada programa permite configurar 16 horarios de riego y en cada hoarario es posible establecer hasta 8 secuencias de riego para las electoválvulas.
 
 <img width="800" alt="Registros Riego" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/Registros_Riego.jpg">
 
@@ -81,7 +81,7 @@ Para seleccionar la hora de inicio de un programa de riego es necesario utilizar
 *SETHRI,NumPrograma,NumHoraInicio;HoraInicio*<br>
 en donde:
 * NumPrograma corresponde al número de programa de riego (varía entr 1 y 4)
-* NumHoraInicio corresponde al horario de inicio de un ciclo de riego (varía entre 1 y 4)
+* NumHoraInicio corresponde al horario de inicio de un ciclo de riego (varía entre 1 y 16)
 * Hora Inicio corresponde a la hora que se requiere configurar(hora, minuto, segundo)
 
 Por ejemplo si se necesita configurar el ciclo de riego 2 del programa de riego número 1 a las 08h30 es necesario utilizar el siguiente comando:<br>
@@ -93,7 +93,7 @@ El comando para activar una secuencia individual es le siguiente:<br>
 *SETSEC,NumPrograma,NumHoraInicio,NumSecuencia,HGFEDCBA*<br>
 En donde:
 * NumPrograma corresponde al número de programa de riego (varía entr 1 y 4)
-* NumHoraInicio corresponde al horario de inicio de un ciclo de riego (varía entre 1 y 4)
+* NumHoraInicio corresponde al horario de inicio de un ciclo de riego (varía entre 1 y 16)
 * NumSecuencia indica el número de secuencia que se va a configurar
 * HGFEDCBA  corresponden a los bits del registro de configuración de secuencia que pueden ser 1 o 0
 Por ejemplo si es necesario activar las electroválvulas temporizadas 1 y 3 de la secuencia 2 del hoarario de inicio de ciclo de riego 4 del Número de Programa 3, el comando que se debe enviar es el siguiente: <br>
