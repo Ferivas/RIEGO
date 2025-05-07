@@ -7,21 +7,21 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 238
+$version 0 , 1 , 292
 $regfile = "m2560def.dat"
 $crystal = 16000000
-$hwstack = 80
-$swstack = 80
-$framesize = 80
+$hwstack = 128
+$swstack = 128
+$framesize = 128
 $baud = 9600
 
-$projecttime = 308
+$projecttime = 363
 
 
 'Declaracion de constantes
 Const Numprog = 4                                           'nUMERO DE PROGRAMAS
 Const Numprog_masuno = Numprog + 1
-Const Numhorariego = 4
+Const Numhorariego = 16
 Const Numhorariego_masuno = Numhorariego + 1                'Horas deriego por programa
 Const Numhoras = Numprog * Numhorariego                     'Horas de riego para configurar
 Const Numsec = 8
@@ -220,54 +220,6 @@ Do
    Ptrtx = Ptrtx Mod Numbuf
    Incr Ptrtx
 
-   If Edsta(1) = 0 Then                                     'Prueba nivel para recirculación
-      Set Evrecirc
-      Set Evluzev
-   End If
-
-   If Edsta(1) = 1 Then
-      Reset Evrecirc
-      Reset Evluzev
-
-   End If
-
-   If Edsta(2) = 0 Then
-      Reset Evnebul
-      Reset Ininebul
-      Reset Ininebulon
-      Reset Ininebuloff
-      Reset Firstnebulon
-   End If
-
-   If Edsta(2) = 1 Then
-      Set Ininebul
-      If Firstnebulon = 0 Then
-         Set Ininebulon
-         'Print #1 , "Ininebulon=1"
-         Set Firstnebulon
-      End If
-   End If
-
-   If Ininebulon = 1 Then
-      Set Evnebul
-   End If
-
-   If Ininebulonant <> Ininebulon Then
-      Ininebulonant = Ininebulon
-      Print #1 , "Ininebulon=" ; Ininebulon
-      Set Iniauto.2
-   End If
-
-   If Ininebuloff = 1 Then
-      Reset Evnebul
-   End If
-
-   If Ininebuloffant <> Ininebuloff Then
-      Ininebuloffant = Ininebuloff
-      Print #1 , "IninebuloFF=" ; Ininebuloff
-      Set Iniauto.2
-   End If
-
    If Tx_buf(ptrtx) = 1 Then
       Print #1 , "Ptrtx=" ; Ptrtx
       Tx_buf(ptrtx) = 0
@@ -293,33 +245,11 @@ Do
       Call Verackesp32()
    End If
 
-   If Habdiaria = 1 Then
-      If Iniciclo = 1 Then
-         If Iniciclo <> Inicicloant Then
-            Inicicloant = Iniciclo
-            Print #1 , "Ini Ciclo de Riego " ; Ptrciclo
-            Set Inisecuencia
-            Set Newsecuencia
-            Ptrsecuencia = 0
-            Set Evriego
-            Set Evozono
-         End If
-
-         If Newsecuencia = 1 Then
-            Reset Newsecuencia
-            Print #1 , "SEC=" ; Ptrsecuencia ; "," ; Time$
-            Call Outreles(enaprog , Ptrciclo , Ptrsecuencia)
-            Set Iniauto.0
-            Incr Ptrsecuencia
-            Ptrsecuencia = Ptrsecuencia Mod Numsec
-            If Ptrsecuencia = 0 Then
-               Reset Iniciclo
-               Inicicloant = Iniciclo
-               Print #1 , "FIN Ciclo"
-               Call Resetreles()
-            End If
-         End If
-      End If
+   If Tx_buf(ptrtx) = 1 Then
+      Print #1 , "Ptrtx=" ; Ptrtx
+      Tx_buf(ptrtx) = 0
+      Call Gentrama()
+      Set Iniauto.2
    End If
 
    If Iniauto.0 = 1 Then
@@ -392,6 +322,115 @@ Do
       If Enabug.3 = 1 Then
          Print #1 , "H=" ; Humidity ; " , T=" ; Temperature
       End If
+   End If
+
+   If Edsta(3) = 1 Then                                     'Modo Automático
+      If Edsta(3) <> Edsta3ant Then
+         Edsta3ant = Edsta(3)
+         Print #1 , "Edsta(3)=" ; Edsta(3)
+         Print #1 , "AUTO"
+         Call Resetreles()
+         Set Modo
+      End If
+
+      If Edsta(1) = 0 Then                                  'Prueba nivel para recirculación
+         Set Evrecirc
+         Set Evluzev
+      End If
+
+      If Edsta(1) = 1 Then
+         Reset Evrecirc
+         Reset Evluzev
+
+      End If
+
+      If Edsta(2) = 0 Then
+         Reset Evnebul
+         Reset Ininebul
+         Reset Ininebulon
+         Reset Ininebuloff
+         Reset Firstnebulon
+      End If
+
+      If Edsta(2) = 1 Then
+         Set Ininebul
+         If Firstnebulon = 0 Then
+            Set Ininebulon
+            'Print #1 , "Ininebulon=1"
+            Set Firstnebulon
+         End If
+      End If
+
+      If Ininebulon = 1 Then
+         Set Evnebul
+      End If
+
+      If Ininebulonant <> Ininebulon Then
+         Ininebulonant = Ininebulon
+         Print #1 , "Ininebulon=" ; Ininebulon
+         Set Iniauto.2
+      End If
+
+      If Ininebuloff = 1 Then
+         Reset Evnebul
+      End If
+
+      If Ininebuloffant <> Ininebuloff Then
+         Ininebuloffant = Ininebuloff
+         Print #1 , "IninebuloFF=" ; Ininebuloff
+         Set Iniauto.2
+      End If
+
+      If Habdiaria = 1 Then
+         If Iniciclo = 1 Then
+            If Iniciclo <> Inicicloant Then
+               Inicicloant = Iniciclo
+               Print #1 , "Ini Ciclo de Riego " ; Ptrciclo
+               Set Inisecuencia
+               Set Newsecuencia
+               Ptrsecuencia = 0
+               Set Evriego
+               Set Evozono
+            End If
+
+            If Newsecuencia = 1 Then
+               Reset Newsecuencia
+               Print #1 , "SEC=" ; Ptrsecuencia ; "," ; Time$
+               Call Outreles(enaprog , Ptrciclo , Ptrsecuencia)
+               Set Iniauto.0
+               Incr Ptrsecuencia
+               Ptrsecuencia = Ptrsecuencia Mod Numsec
+               If Ptrsecuencia > 6 Then
+                  Reset Evriego
+                  Reset Evozono
+               End If
+               'Ptrsecuencia = Ptrsecuencia Mod 6
+               If Ptrsecuencia = 0 Then
+                  Reset Iniciclo
+                  Inicicloant = Iniciclo
+                  Print #1 , "FIN Ciclo"
+                  Call Resetreles()
+                  Reset Evriego
+                  Reset Evozono
+               End If
+            End If
+         End If
+      End If
+   Else
+      If Edsta(3) <> Edsta3ant Then
+         Edsta3ant = Edsta(3)
+         Print #1 , "Edsta(3)=" ; Edsta(3)
+         Print #1 , "MANUAL"
+         Call Setreles()
+         Set Iniauto.0
+         Reset Modo
+         Reset Evriego
+         Reset Evozono
+         Reset Evnebul
+         Reset Evrecirc
+         Reset Evluzev
+      End If
+
    End If
 
 

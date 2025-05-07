@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 547
+$projecttime = 649
 
 
 '*******************************************************************************
@@ -38,6 +38,7 @@ Declare Sub Verackesp32()
 Declare Sub Outreles(byval Numprograma As Byte , Byval Numciclo As Byte , Byval Numsecuencia As Byte)
 Declare Sub Data2disp()
 Declare Sub Resetreles()
+Declare Sub Setreles()
 Declare Sub Leered()
 Declare Sub Gentrama()
 
@@ -51,6 +52,9 @@ Dim Tmpl As Long , Tmpl2 As Long
 Dim Tmpw As Word , Tmpw2 As Word
 Dim Tmpcrc32 As Long
 Dim Tmpbit As Bit
+Dim Modo As Bit
+Dim Cntrdisp As Byte
+Dim Tmpdisp As Byte
 
 Dim Trytx As Byte
 Dim Txok As Bit
@@ -215,6 +219,7 @@ Dim Vin_buf(numbuf) As Single
 Dim Vbat_buf(numbuf) As Single
 Dim Tx_buf(numbuf) As Byte
 Dim Ed_buf(numbuf) As Byte
+Dim Edsta3ant As Byte
 
 Dim Tonnebul As Word
 Dim Tonnebuleep As Eram Word
@@ -237,7 +242,7 @@ Dim Rpidata As String * 140 , Rpiproc As String * 140
 Dim Ser_ini As Bit , Sernew As Bit
 Dim Numpar As Byte
 Dim Cmdsplit(34) As String * 20
-Dim Serdata As String * 200 , Serrx As Byte , Serproc As String * 200
+Dim Serdata As String * 180 , Serrx As Byte , Serproc As String * 180
 
 
 
@@ -510,6 +515,9 @@ Sub Inivar()
    Print #1 , Version(2)
    Print #1 , Version(3)
 
+   Enabug = Enabugeep
+   Print #1 , "ENABUG=" ; Enabug
+
    Horamin = Horamineep
    Print #1 , "Ultima ACT CLK " ; Date(horamin) ; "," ; Time(horamin)
    Tactclk = Tactclkeep
@@ -529,7 +537,7 @@ Sub Inivar()
       Print #1 , "Prog " ; J
       For K = 1 To Numhorariego
          Tmpw = J - 1
-         Tmpw = Tmpw * 4
+         Tmpw = Tmpw * Numhorariego
          Tmpw = Tmpw + K
          Tmpl = Horariegoeep(tmpw)
          Horariego(tmpw) = Tmpl
@@ -593,8 +601,7 @@ Sub Inivar()
       Offset(tmpb) = Offseteep(tmpb)
       Print #1 , "Aut" ; Tmpb ; "=" ; Autoval(tmpb) ; ", OFF" ; Tmpb ; "=" ; Offset(tmpb)
    Next
-   Enabug = Enabugeep
-   Print #1 , "ENABUG=" ; Enabug
+
 
    Cntrini = Cntrinieep
    Incr Cntrini
@@ -623,6 +630,8 @@ Sub Inivar()
    Print #1 , "TON nebul=" ; Tonnebul
    Toffnebul = Toffnebuleep
    Print #1 , "TOFF nebul=" ; Toffnebul
+
+   Edsta3ant = 99
 End Sub
 
 Sub Inihorainicio()
@@ -632,7 +641,7 @@ Sub Inihorainicio()
    Print #1 , "HabDiaSemana=" ; Bin(habdiasemtmp)
    For K = 1 To Numhorariego
       Tmpw = J - 1
-      Tmpw = Tmpw * 4
+      Tmpw = Tmpw * Numhorariego
       Tmpw = Tmpw + K
       Tmpl = Horariego(tmpw)
       Horainicio(k) = Tmpl
@@ -672,65 +681,64 @@ Sub Resetreles()
 
 End Sub
 
+Sub Setreles()
+   Set Ev1
+   Set Ev2
+   Set Ev3
+   Set Ev4
+   Set Ev5
+   Set Ev6
+
+End Sub
+
 Sub Data2disp()
    Tmpstr52 = Date$
    Tmpstr52 = Tmpstr52 + " " + Time$ + " "
    Lcdat 1 , 1 , Tmpstr52
-   Tmpstr52 = "P" + Str(enaprog) + ", L" + Str(habdiasemtmp.0) + "M" + Str(habdiasemtmp.1) + "M" + Str(habdiasemtmp.2)
-   Tmpstr52 = Tmpstr52 + "J" + Str(habdiasemtmp.3) + "V" + Str(habdiasemtmp.4) + "S" + Str(habdiasemtmp.5) + "D" + Str(habdiasemtmp.6) + " "
+
+   Tmpstr52 = "M=" + Str(edsta(3))                          '+ ", RH=" + Str(edsta(2)) + ", RN=" + Str(edsta(1)) + "  "
+   Tmpbit = Ed1 Xor Edpol.1
+   Tmpstr52 = Tmpstr52 + ", RH=" + Str(tmpbit)
+   Tmpbit = Ed0 Xor Edpol.0
+   Tmpstr52 = Tmpstr52 + ", RN=" + Str(tmpbit) + "  "
    Lcdat 3 , 1 , Tmpstr52
-   Tmpl = Horainicio(1)
-   Tmpstr52 = Time(tmpl) + " "
-   Tmpl = Horainicio(2)
-   Tmpstr52 = Tmpstr52 + Time(tmpl) + " "
+
+   Tmpstr52 = "H=" + Humidity + " T=" + Temperature + "  "  '",RN=" + Str(edsta(1)) + ",RH=" + Str(edsta(2)) + ",M=" + Str(edsta(3)) + "  "
    Lcdat 5 , 1 , Tmpstr52
-   Tmpl = Horainicio(3)
-   Tmpstr52 = Time(tmpl) + " "
-   Tmpl = Horainicio(4)
-   Tmpstr52 = Tmpstr52 + Time(tmpl) + " "
-   Lcdat 7 , 1 , Tmpstr52
+
+   Incr Tmpdisp
+   If Tmpdisp.0 = 1 Then
+      Incr Cntrdisp
+      Tmpstr52 = ""
+      Cntrdisp = Cntrdisp Mod 17
+      If Cntrdisp = 0 Then
+         Tmpstr52 = "P" + Str(enaprog) + ", L" + Str(habdiasemtmp.0) + "M" + Str(habdiasemtmp.1) + "M" + Str(habdiasemtmp.2)
+         Tmpstr52 = Tmpstr52 + "J" + Str(habdiasemtmp.3) + "V" + Str(habdiasemtmp.4) + "S" + Str(habdiasemtmp.5) + "D" + Str(habdiasemtmp.6) + " "
+      Else
+         Tmpl = Horainicio(cntrdisp)
+         Tmpstr52 = "HR" + Str(cntrdisp) + "=" + Time(tmpl) + "     "
+      End If
+      Lcdat 7 , 1 , Tmpstr52
+   End If
 
 End Sub
 
 Sub Defaultvalues()
    Enaprogeep = 1                                           'Programa Actual 1
    Tiemporiegoeep = 20
+   Tmpb2 = 0
    For Tmpb = 1 To Numprog
       Habdiasemeep(tmpb) = &B01111111
+      Tmpstr52 = "06:00:00"
+      Tmpl = Secofday(tmpstr52)
+      Print #1 , "PROG " ; Tmpb ; " Tmpl=" ; Tmpl
+      For Tmpb3 = 1 To Numhorariego
+         Incr Tmpb2
+         Horariego(tmpb2) = Tmpl
+         Print#1 , "HR" ; Tmpb2 ; "=" ; Time(tmpl)
+         Tmpl = Tmpl + 3600
+      Next
    Next
-
-   Tmpstr52 = "06:00:00"
-   Horariego(1) = Secofday(tmpstr52)
-   Tmpstr52 = "07:00:00"
-   Horariego(2) = Secofday(tmpstr52)
-   Tmpstr52 = "08:00:00"
-   Horariego(3) = Secofday(tmpstr52)
-   Tmpstr52 = "09:00:00"
-   Horariego(4) = Secofday(tmpstr52)
-   Tmpstr52 = "10:00:00"
-   Horariego(5) = Secofday(tmpstr52)
-   Tmpstr52 = "11:00:00"
-   Horariego(6) = Secofday(tmpstr52)
-   Tmpstr52 = "12:00:00"
-   Horariego(7) = Secofday(tmpstr52)
-   Tmpstr52 = "13:00:00"
-   Horariego(8) = Secofday(tmpstr52)
-   Tmpstr52 = "13:30:00"
-   Horariego(9) = Secofday(tmpstr52)
-   Tmpstr52 = "14:30:00"
-   Horariego(10) = Secofday(tmpstr52)
-   Tmpstr52 = "15:30:00"
-   Horariego(11) = Secofday(tmpstr52)
-   Tmpstr52 = "16:30:00"
-   Horariego(12) = Secofday(tmpstr52)
-   Tmpstr52 = "17:30:00"
-   Horariego(13) = Secofday(tmpstr52)
-   Tmpstr52 = "18:30:00"
-   Horariego(14) = Secofday(tmpstr52)
-   Tmpstr52 = "19:30:00"
-   Horariego(15) = Secofday(tmpstr52)
-   Tmpstr52 = "20:30:00"
-   Horariego(16) = Secofday(tmpstr52)
 
    For K = 1 To Numhoras
       Horariegoeep(k) = Horariego(k)
@@ -780,6 +788,8 @@ Sub Defaultvalues()
 
    Tonnebuleep = 60
    Toffnebuleep = 30
+   Tactclkeep = 3600
+   Tackeep = 60
 
 End Sub
 
@@ -948,7 +958,7 @@ Sub Procser()
                      Tmpstr52 = Cmdsplit(4)
                      'Tmpl = Secofday(tmpstr52)
                      Tmpw = Tmpb2 - 1
-                     Tmpw = Tmpw * 4
+                     Tmpw = Tmpw * Numhorariego
                      Tmpw = Tmpw + Tmpb
                      Print #1 , "PTR Hri=" ; Tmpw
                      Horariego(tmpw) = Secofday(tmpstr52)
@@ -974,7 +984,7 @@ Sub Procser()
                   If Tmpb > 0 And Tmpb < Numhorariego_masuno Then
                      Cmderr = 0
                      Tmpw = Tmpb2 - 1
-                     Tmpw = Tmpw * 4
+                     Tmpw = Tmpw * Numhorariego
                      Tmpw = Tmpw + Tmpb
                      Print #1 , "PTR Hri=" ; Tmpw
                      Tmpstr52 = Time(horariego(tmpw))
@@ -1256,6 +1266,7 @@ Sub Procser()
 
          Case "SETTAC"
             If Numpar = 2 Then
+               Cmderr = 0
                Tactclk = Val(cmdsplit(2))
                Tactclkeep = Tactclk
                Atsnd = "Se configuro Tact CLK=" + Str(tactclk)
@@ -1650,6 +1661,7 @@ Sub Leer_rtc()
                Set Actclk
             Else
                Print #1 , "Hora actual < Horamin, actualice el CLK"
+               Set Iniactclk
             End If
          Else
             I2cinit
@@ -1660,6 +1672,23 @@ Sub Leer_rtc()
          Reset Sernew
          Print #1 , "SER1=" ; Serproc
          Call Procser()
+      End If
+
+      If Iniactclk = 1 Then
+         Reset Iniactclk
+         Print #1 , "ACT CLK"
+         Atsnd = "GETNTP,1,2,3"
+         Tmpw = Len(atsnd)
+         Tmpcrc32 = Crc32(atsnd , Tmpw)
+         Atsnd = Atsnd + "&" + Hex(tmpcrc32)                '+ Chr(10)
+         Print #1 , "%" ; Atsnd
+         Print #3 , "%" ; Atsnd
+      End If
+
+      If Rpinew = 1 Then
+         Reset Rpinew
+         Print#1 , "RPItx>" ; Rpiproc
+         Call Procrpi()
       End If
 
 
@@ -1991,7 +2020,7 @@ Sub Tx1()
    Horaed = Time$
    Atsnd = "D" + "," + Fechaed + "," + Horaed + "," + Idserial + "-1"
    Atsnd = Atsnd + "," + Str(ev1) + "," + Str(ev2) + "," + Str(ev3) + "," + Str(ev4)
-   Atsnd = Atsnd + "," + Str(ev5) + "," + Str(ev6) + "," + Str() + ","
+   Atsnd = Atsnd + "," + Str(ev5) + "," + Str(ev6) + "," + Str() + "," + Str(modo)
    Tmpw = Len(atsnd)
    Tmpcrc32 = Crc32(atsnd , Tmpw)
    Atsnd = Atsnd + "&" + Hex(tmpcrc32) + Chr(10)

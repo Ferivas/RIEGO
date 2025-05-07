@@ -112,7 +112,7 @@ def getntptime():
          
      cmdclk=dia+mes+anio[2:]+hora+minu+seg
      print(cmdclk)
-     salida='%SETDAA;SETCLK,'+cmdclk+'\r\n'
+     salida='%SETMBD;SETCLK,'+cmdclk+'\r\n'
      #salida='%SETDAA;SETCLK,'+cmdclk
      print(salida)
      ser.write(salida)
@@ -545,6 +545,12 @@ while True:
           salida="%SETMBD;LEEPRG"+"\r\n"
           print(salida)
           ser.write(salida)
+      if rqbody['method'] == 'setCmd':
+          cmdata=rqbody['params']
+          cmd=cmdata.get("CMD")
+          salida="%SETMBD;"+cmd+"\r\n"
+          print(salida)
+          ser.write(salida)          
           
 
   if flagseg:
