@@ -36,10 +36,14 @@ Permite leer datos de humeda/temperatura ambiental
 ### ENTRADAS
 * Contactos secos del Relé de nivel 
 * Contactos secos de sensor de HUmedad Temperatura
-  
-## OPERACION
+
+## OPERACION MODO MANUAL
+En el modo manual se activan los relés de las válvulas EV1, EV2, EV3, EV4, EV5, EV6.<br>
+Los demás relés se desactivan a excepción de los relés auxiliares que mantienen su último estado.
+
+## OPERACION MODO AUTOMATICO
 El Sistema de Riego se puede programar con 4 programas de riego que permiten activar secuencialmente las electroválvulas temporizadas en secuencias que se pueden configurar para cada programa. Solo un programa puede estar activo a la vez.<br>
-En cada programa de riego se pueden configurar 4 horas de inicio de un ciclo de riego. Una ciclo de riego activa secuencialmente las electroválvulas en grupos. Una ciclo de riego puede tener hasta 8 secuencias de activación. En cada secuencia de activación se pueden activar/desactivar uno o más electroválvulas temporizadas activando/desactivando bits en los registros de de activación de secuencias de una hora de inicio de un ciclo re riego.<br>
+En cada programa de riego se pueden configurar 16 horas de inicio de un ciclo de riego. Una ciclo de riego activa secuencialmente las electroválvulas en grupos. Una ciclo de riego puede tener hasta 8 secuencias de activación. En cada secuencia de activación se pueden activar/desactivar uno o más electroválvulas temporizadas activando/desactivando bits en los registros de de activación de secuencias de una hora de inicio de un ciclo re riego.<br>
 Por ejemplo se puede configurar un ciclo de riego para que se activen las electrovávulas individualmente y en secuencia si los bits de los registros de activación de las secuencia de la hora de inicio se configuran de la siguiente manera:
 * SEC1 : 00000001
 * SEC2 : 00000010
@@ -96,7 +100,7 @@ Por ejemplo si es necesario activar las electroválvulas temporizadas 1 y 3 de l
 *SETSEC,3,4,2,00000101* <br>
 
 ### CONFIGURACION DE TIEMPO DE ACCIONAMIENTO
-El tiempo de accionamiento de una secuencia en un cilo de riego se configura con el comnado <br>
+El tiempo de accionamiento de una secuencia en un ciclo de riego se configura con el comando <br>
 *SETTRI,TiempoAccionamiento* <br>
 En donde el Tiempo de Accionamiento están en segundos y puede variar entre 1 y 65535 segundos. Por ejemplo para accionar un tiempo de 5 minutos es necesario configurar el tiempo a 5*60segundos=300 con el siguiente comando:<br>
 *SETTRI,300*
