@@ -125,6 +125,29 @@ Este circuito se montó en un tablero de control cuyo interior se muestra en la 
 El exterior del circuito de control es le siguiente:<br>
 <img width="600" alt="Exterior Tablero" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/TableroControl_Exterior.jpg">
 
+## CONEXIONES TARJETA MAINBOARD
+
+Los elementos de la tajeta Mainboard se coenctan como se muestra en la figura siguiente:
+
+<img width="600" alt="Mainboard" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/Mainboardconexi%C3%B3n.jpg">
+
+La fuente para el módulo de relés se conecta como se muestra a continuación:
+
+<img width="600" alt="Fuente Relé" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/Conexi%C3%B3nFuenteRel%C3%A9s.jpg">
+
+Las entradas digitales se coenctan con la bornera de 5 pines.
+
+<img width="600" alt="Entradas" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/Conexi%C3%B3n_ED.jpg">
+
+## CONFIGURACION DE LA RED WIFI
+Si el módulo de comunicaciones no encuentra una red que tenga guardada se convierte en un punto de acceso WiFi, al cual puede el usuario conectarse.<br>
+Esta red es *RIEGO2025* y la contraseña para acceder a la misma es *riego2025* <br>
+
+Una vez conectado a esta red (se recomienda desconectar el móvil de la red de datos LTE de la operadora móvil), es necesario que le usuario ingrese a la dirección
+
+192.168.4.1
+
+en el navegador móvil. En esta página se puede ver las redes WiFI disponibles. Se selecciona la que se requiera y se ingresa la contraseña. 
 
 
 
