@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 649
+$projecttime = 650
 
 
 '*******************************************************************************
@@ -2020,7 +2020,7 @@ Sub Tx1()
    Horaed = Time$
    Atsnd = "D" + "," + Fechaed + "," + Horaed + "," + Idserial + "-1"
    Atsnd = Atsnd + "," + Str(ev1) + "," + Str(ev2) + "," + Str(ev3) + "," + Str(ev4)
-   Atsnd = Atsnd + "," + Str(ev5) + "," + Str(ev6) + "," + Str() + "," + Str(modo)
+   Atsnd = Atsnd + "," + Str(ev5) + "," + Str(ev6) + "," + "," + Str(modo)
    Tmpw = Len(atsnd)
    Tmpcrc32 = Crc32(atsnd , Tmpw)
    Atsnd = Atsnd + "&" + Hex(tmpcrc32) + Chr(10)

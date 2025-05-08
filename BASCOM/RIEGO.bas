@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 292
+$version 0 , 1 , 299
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 128
@@ -15,7 +15,7 @@ $swstack = 128
 $framesize = 128
 $baud = 9600
 
-$projecttime = 363
+$projecttime = 367
 
 
 'Declaracion de constantes
@@ -180,11 +180,11 @@ Estado_led = 3
 
 Print #1 , "MEGARTC"
 Cls
-Showpic 0 , 0 , Pic
-Wait 1
-Cls
+'Showpic 0 , 0 , Pic
+'Wait 1
+'Cls
 Setfont Font8x8tt
-Lcdat 1 , 1 , "**  MEGA 2020 **"
+Lcdat 1 , 1 , "**  RIEGO 2025 **"
 Lcdat 3 , 1 , Version(1)
 Lcdat 5 , 1 , Version(2)
 Lcdat 7 , 1 , Version(3)

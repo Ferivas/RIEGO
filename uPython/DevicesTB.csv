@@ -1,0 +1,5 @@
+N,Idserial,Token,Nodo,field1,field2,field3,field4,field5,field6,field7,field8,D
+1,6E756E6B776FFF000C11-1,TB_Token,RIEGO,ev1,ev2,ev3,ev4,ev5,ev6,evrecirc,modo,D
+2,6E756E6B776FFF000C11-2,TB_Token,RIEGO,h1,t1,cini,cesp32rst,numprog,triego,tonnebul,toffnebul,D
+3,6E756E6B776FFF000C11-3,TB_Token,RIEGO,evriego,evozono,evnebul,,evluzev,,,,D
+4,6E756E6B776FFF000C11-5,TB_Token,RIEGO,ed1,ed2,ed3,ed4,,,,,D
