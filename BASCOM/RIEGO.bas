@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 299
+$version 0 , 1 , 322
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 128
@@ -15,7 +15,7 @@ $swstack = 128
 $framesize = 128
 $baud = 9600
 
-$projecttime = 367
+$projecttime = 384
 
 
 'Declaracion de constantes
@@ -324,6 +324,16 @@ Do
       End If
    End If
 
+   If Iniriegooff <> Iniriegooffant Then
+      Iniriegooffant = Iniriegooff
+      If Iniriegooff = 1 Then
+         Print #1 , "INI espera en OFF " ; Time$
+      Else
+         Print #1 , "FIN espera en OFF " ; Time$
+      End If
+
+   End If
+
    If Edsta(3) = 1 Then                                     'Modo Automático
       If Edsta(3) <> Edsta3ant Then
          Edsta3ant = Edsta(3)
@@ -389,8 +399,8 @@ Do
                Set Inisecuencia
                Set Newsecuencia
                Ptrsecuencia = 0
-               Set Evriego
-               Set Evozono
+               'Set Evriego
+               'Set Evozono
             End If
 
             If Newsecuencia = 1 Then
@@ -412,6 +422,8 @@ Do
                   Call Resetreles()
                   Reset Evriego
                   Reset Evozono
+                  Reset Inisecuencia
+                  Cntrticks = 0
                End If
             End If
          End If
@@ -430,7 +442,6 @@ Do
          Reset Evrecirc
          Reset Evluzev
       End If
-
    End If
 
 

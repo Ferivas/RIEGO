@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 650
+$projecttime = 721
 
 
 '*******************************************************************************
@@ -41,6 +41,7 @@ Declare Sub Resetreles()
 Declare Sub Setreles()
 Declare Sub Leered()
 Declare Sub Gentrama()
+Declare Sub Tstconfig()
 
 
 '*******************************************************************************
@@ -233,6 +234,14 @@ Dim Ininebuloff As Bit
 Dim Ininebulonant As Bit
 Dim Ininebuloffant As Bit
 Dim Firstnebulon As Bit
+
+
+Dim Iniriegooffant As Bit
+Dim Iniriegooff As Bit
+Dim Cntrriegooff As Word
+Dim Tiemporiegooff As Word
+Dim Tiemporiegooffeep As Eram Word
+
 'Variables SERIAL 1
 Dim Rpi_ini As Bit , Rpinew As Bit
 Dim Rpirx As Byte
@@ -403,10 +412,28 @@ Int_timer1:
    End If
 
    If Inisecuencia = 1 Then
-      Incr Cntrticks
-      Cntrticks = Cntrticks Mod Tiemporiego
-      If Cntrticks = 0 Then
+      If Iniriegooff = 0 Then
+         Incr Cntrticks
+         Cntrticks = Cntrticks Mod Tiemporiego
+         If Cntrticks = 0 Then
+            'Set Newsecuencia
+            Set Iniriegooff
+            Reset Evriego
+            Reset Evozono
+            Call Resetreles()
+            Set Iniauto.0
+            Set Iniauto.2
+         End If
+      endif
+   End If
+
+   If Iniriegooff = 1 Then
+      Incr Cntrriegooff
+      Cntrriegooff = Cntrriegooff Mod Tiemporiegooff
+      If Cntrriegooff = 0 Then
          Set Newsecuencia
+         Reset Iniriegooff
+         Cntrticks = 0
       End If
    End If
 
@@ -577,6 +604,9 @@ Sub Inivar()
    Tiemporiego = Tiemporiegoeep
    Print #1 , "Tiemporiego=" ; Tiemporiego
 
+   Tiemporiegooff = Tiemporiegooffeep
+   Print #1 , "Tiemporiegooff=" ; Tiemporiegooff
+
    Call Leeidserial()
    Print#1 , "IDser<" ; Idserial ; ">"
    Diasemanaant = 99
@@ -661,6 +691,13 @@ Sub Outreles(byval Numprograma As Byte , Byval Numciclo As Byte , Byval Numsecue
    Ptrw = Ptrw + Numsecuencia
    Ptrw = Ptrw + 1
    Tmpout = Secriego(ptrw)
+   If Tmpout = 0 Then
+      Reset Evriego
+      Reset Evozono
+   Else
+      Set Evriego
+      Set Evozono
+   End If
    Print #1 , "SEC" ; Numsecuencia ; "=" ; Bin(tmpout) ; "," ; Ptrw
    Ev1 = Tmpout.0
    Ev2 = Tmpout.1
@@ -725,14 +762,15 @@ End Sub
 
 Sub Defaultvalues()
    Enaprogeep = 1                                           'Programa Actual 1
-   Tiemporiegoeep = 20
+   Tiemporiegoeep = 60
+   Tiemporiegooffeep = 900
    Tmpb2 = 0
    For Tmpb = 1 To Numprog
       Habdiasemeep(tmpb) = &B01111111
       Tmpstr52 = "06:00:00"
       Tmpl = Secofday(tmpstr52)
       Print #1 , "PROG " ; Tmpb ; " Tmpl=" ; Tmpl
-      For Tmpb3 = 1 To Numhorariego
+      For Tmpb3 = 1 To Numhorariego                         'Numhorariego = 16
          Incr Tmpb2
          Horariego(tmpb2) = Tmpl
          Print#1 , "HR" ; Tmpb2 ; "=" ; Time(tmpl)
@@ -740,7 +778,7 @@ Sub Defaultvalues()
       Next
    Next
 
-   For K = 1 To Numhoras
+   For K = 1 To Numhoras                                    'Numhoras = Numprog * Numhorariego
       Horariegoeep(k) = Horariego(k)
    Next
 
@@ -787,12 +825,69 @@ Sub Defaultvalues()
    Edhabeep = &B00001111
 
    Tonnebuleep = 60
-   Toffnebuleep = 30
+   Toffnebuleep = 1800
    Tactclkeep = 3600
    Tackeep = 60
 
 End Sub
 
+
+Sub Tstconfig()
+   Enaprogeep = 1                                           'Programa Actual 1
+   Tiemporiegoeep = 60
+   Tiemporiegooffeep = 900
+   Tmpstr52 = "05:00:00"
+   Tmpl = Secofday(tmpstr52)
+   Horariegoeep(1) = Tmpl
+   Tmpstr52 = "08:00:00"
+   Tmpl = Secofday(tmpstr52)
+   Horariegoeep(2) = Tmpl
+   Tmpstr52 = "11:00:00"
+   Tmpl = Secofday(tmpstr52)
+   Horariegoeep(3) = Tmpl
+   Tmpstr52 = "14:00:00"
+   Tmpl = Secofday(tmpstr52)
+   Horariegoeep(4) = Tmpl
+   Tmpstr52 = "17:00:00"
+   Tmpl = Secofday(tmpstr52)
+   Horariegoeep(5) = Tmpl
+   Tmpstr52 = "20:00:00"
+   Tmpl = Secofday(tmpstr52)
+   Horariegoeep(6) = Tmpl
+   Tmpstr52 = "23:00:00"
+   Tmpl = Secofday(tmpstr52)
+   Horariegoeep(7) = Tmpl
+
+   Tmpstr52 = "05:00:00"
+   Tmpl = Secofday(tmpstr52)
+   Horariegoeep(8) = Tmpl
+   Horariegoeep(9) = Tmpl
+   Horariegoeep(10) = Tmpl
+   Horariegoeep(11) = Tmpl
+   Horariegoeep(12) = Tmpl
+   Horariegoeep(13) = Tmpl
+   Horariegoeep(14) = Tmpl
+   Horariegoeep(15) = Tmpl
+   Horariegoeep(16) = Tmpl
+
+   J = 1
+   For K = 1 To Numhorariego
+      Print #1 , "Horario " ; K
+      Tmpw = J - 1
+      Tmpw = Tmpw * 32
+      Tmpw2 = K - 1
+      Tmpw2 = Tmpw2 * 8
+      Tmpw = Tmpw + Tmpw2
+      For N = 1 To Numsec
+         Ptrsec = Tmpw + N
+         Tmpb = Lookup(n , Tbl_tbltstconfig)
+         Secriego(ptrsec) = Tmpb
+         Secriegoeep(ptrsec) = Tmpb
+         Print #1 , "SEC " ; N ; "=" ; Bin(secriego(ptrsec)) ; ", " ; Ptrsec
+      Next
+   Next
+
+End Sub
 
 Sub Vercfg()
    Print #1 , "Verificar Config. Inicial"
@@ -882,6 +977,12 @@ Sub Procser()
             Cfgok = 1
             Cfgokeep = Cfgok
             Call Defaultvalues()
+
+         Case "TSTCFG"
+            Cmderr = 0
+            Atsnd = "Se carga config de prueba"
+            Set Inivariables
+            Call Tstconfig()
 
          Case "LEERID"
             Cmderr = 0
@@ -1018,6 +1119,25 @@ Sub Procser()
             Cmderr = 0
             Atsnd = "Triego=" + Str(tiemporiego)
 
+         Case "SETTRO"
+            If Numpar = 2 Then
+               Tmpw = Val(cmdsplit(2))
+               If Tmpw > 0 Then
+                  Cmderr = 0
+                  Tiemporiegooff = Tmpw
+                  Atsnd = "Se configuro Triego_off=" + Str(tiemporiegooff)
+                  Tiemporiegooffeep = Tiemporiegooff
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEETRO"
+            Cmderr = 0
+            Atsnd = "Triego off =" + Str(tiemporiegooff)
+
          Case "SETTON"
             If Numpar = 2 Then
                Tmpw = Val(cmdsplit(2))
@@ -1055,8 +1175,6 @@ Sub Procser()
          Case "LEETOF"
             Cmderr = 0
             Atsnd = "TOFF nebul=" + Str(toffnebul)
-
-
 
          Case "SETSEC"
             If Numpar = 5 Then
@@ -1609,6 +1727,11 @@ Sub Procser()
                Cmderr = 4
             End If
 
+         Case "LEEREL"
+            Cmderr = 0
+            Atsnd = "EV=" + Str(ev1) + Str(ev2) + Str(ev3) + Str(ev4) + Str(ev5) + Str(ev6) + ", EVRiego=" + Str(evriego) + ", EVozono=" + Str(evozono)
+
+
          Case "SETAUX"
             Tmpb = Val(cmdsplit(2))
             If Tmpb > 0 And Tmpb < Numrelaux_masuno Then
@@ -2020,7 +2143,7 @@ Sub Tx1()
    Horaed = Time$
    Atsnd = "D" + "," + Fechaed + "," + Horaed + "," + Idserial + "-1"
    Atsnd = Atsnd + "," + Str(ev1) + "," + Str(ev2) + "," + Str(ev3) + "," + Str(ev4)
-   Atsnd = Atsnd + "," + Str(ev5) + "," + Str(ev6) + "," + "," + Str(modo)
+   Atsnd = Atsnd + "," + Str(ev5) + "," + Str(ev6) + "," + Str(evriego) + "," + Str(modo)
    Tmpw = Len(atsnd)
    Tmpcrc32 = Crc32(atsnd , Tmpw)
    Atsnd = Atsnd + "&" + Hex(tmpcrc32) + Chr(10)
@@ -2048,7 +2171,7 @@ Sub Tx3()
    Fechaed = Date$
    Horaed = Time$
    Atsnd = "D" + "," + Fechaed + "," + Horaed + "," + Idserial + "-3"
-   Atsnd = Atsnd + "," + Str(evriego) + "," + Str(evozono) + "," + Str(evnebul) + "," + Str(evrecirc)
+   Atsnd = Atsnd + "," + "," + Str(evozono) + "," + Str(evnebul) + "," + Str(evrecirc)
    Atsnd = Atsnd + "," + Str(evluzev) + "," + "," + "," +
    Tmpw = Len(atsnd)
    Tmpcrc32 = Crc32(atsnd , Tmpw)
@@ -2243,6 +2366,19 @@ Data &B00010000
 Data &B00100000
 Data &B01000000
 Data &B10000000
+
+Tbl_tbltstconfig:
+Data &B00000000                                             'Dummy
+Data &B00000011
+Data &B00001100
+Data &B00110000
+Data &B00000000
+Data &B00000000
+Data &B00000000
+Data &B00000000
+Data &B00000000
+
+
 
 Tbl_semana:
 Data "Lunes"
