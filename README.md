@@ -3,7 +3,7 @@ Control de Riego para Jardín Hidropónico
 
 ## COMPONENTES DEL SISTEMA
 ### RELES PARA CONTROL DE ELECTROVALVULAS TEMPORIZADAS
-Nominadas desde EV1 hasta EV6 se activan secuencialmente durante un tiempo de accionamiento configurable (minutos). Tambien es posible agrupar electroválvulas para el accionamiento simultáneo (Ejem: se accionan al mismo tiempo EV1+EV2+EV3 luego EV4+EV5+EV6)
+Nominadas desde EV1 hasta EV6 se activan secuencialmente durante un tiempo de accionamiento configurable (minutos) y se permanecen apagadas por un tiempo de espara. Tambien es posible agrupar electroválvulas para el accionamiento simultáneo (Ejem: se accionan al mismo tiempo EV1+EV2+EV3 luego EV4+EV5+EV6)
 ### RELE PARA ENCENDIDO/APAGADO DE BOMBA DE RIEGO (P. Riego)
 Se acciona simultáneamente durante los tiempos de accionamiento del ciclo de riego completo de las 6 electroválvulas, definido en el punto anterior.
 ### RELE PARA ENCENDIDO/APAGADO DE GENERADOR DE OZONO
@@ -42,7 +42,7 @@ En el modo manual se activan los relés de las válvulas EV1, EV2, EV3, EV4, EV5
 Los demás relés se desactivan a excepción de los relés auxiliares que mantienen su último estado.
 
 ## OPERACION MODO AUTOMATICO
-El Sistema de Riego se puede programar con 4 programas de riego que permiten activar secuencialmente las electroválvulas temporizadas en secuencias que se pueden configurar para cada programa. Solo un programa puede estar activo a la vez.<br>
+El Sistema de Riego se puede programar con 4 programas de riego que permiten activar secuencialmente las electroválvulas temporizadas en secuencias que se pueden configurar para cada programa. Una secuencia incluye un tiempo de accionamiento durante el cual se activan los relés que se han configurado y luego un tiempo de espera en el cual se apagan todos los relés hasata ejecutar una nueva secuencia. Solo un programa puede estar activo a la vez.<br>
 En cada programa de riego se pueden configurar 16 horas de inicio de un ciclo de riego. Una ciclo de riego activa secuencialmente las electroválvulas en grupos. Una ciclo de riego puede tener hasta 8 secuencias de activación. En cada secuencia de activación se pueden activar/desactivar uno o más electroválvulas temporizadas activando/desactivando bits en los registros de de activación de secuencias de una hora de inicio de un ciclo re riego.<br>
 Por ejemplo se puede configurar un ciclo de riego para que se activen las electrovávulas individualmente y en secuencia si los bits de los registros de activación de las secuencia de la hora de inicio se configuran de la siguiente manera:
 * SEC1 : 00000001
@@ -105,6 +105,12 @@ El tiempo de accionamiento de una secuencia en un ciclo de riego se configura co
 En donde el Tiempo de Accionamiento están en segundos y puede variar entre 1 y 65535 segundos. Por ejemplo para accionar un tiempo de 5 minutos es necesario configurar el tiempo a 5*60segundos=300 con el siguiente comando:<br>
 *SETTRI,300*
 
+### CONFIGURACION DE TIEMPO DE ESPERA EN SECUENCIA
+El tiempo de espera de una secuencia en un ciclo de riego se configura con el comando <br>
+*SETTRO,TiempoEspera* <br>
+En donde el Tiempo de Espera están en segundos y puede variar entre 1 y 65535 segundos. Por ejemplo para accionar un tiempo de 15 minutos es necesario configurar el tiempo a 15*60segundos=900 con el siguiente comando:<br>
+*SETTRO,900*
+
 ### CONFIGURACION VIA PUERTO SERIAL
 Los parámetros de operación del sistema de riego se pueden configurar utilizando un terminal serial configurado a 9600 bps (8,N,1). Todos los comandos se envían con un caracter $ de inicio y CR+LF al  final.
 
@@ -138,6 +144,18 @@ La fuente para el módulo de relés se conecta como se muestra a continuación:
 Las entradas digitales se coenctan con la bornera de 5 pines.
 
 <img width="600" alt="Entradas" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/Conexi%C3%B3n_ED.jpg">
+
+## ESTADO POR DEFECTO DE LAS ENTRADAS DIGITALES
+Para las entradas digitales se considera lo siguiente.
+### Relé de Nivel de la Bomba de Circulación 
+* Contactos cerrados implica que hay agua en le tanque y se puede activar la bomna de recirculación.<br>
+* Contactos abiertos indican que no hay agua en el tanque y se apaga la bomba de recirculación
+### Relé de Alarma de Humedad
+* Contactos cerrados implica que lo niveles de humedad son correctos y no se activa la bomba de nebulización<br>
+* Contactos abiertos indican que la humeda no es la adecuada y que debe encenderse periodicamente la bomba de nebulización (Secuencias de Ton y Toff)
+### Interruptor de Modo de de operación
+* Contactos cerrados indican operación en modo manual para mantenimiento<br>
+* Contactos abiertos indican operación en modo automático
 
 ## CONFIGURACION DE LA RED WIFI
 Si el módulo de comunicaciones no encuentra una red que tenga guardada se convierte en un punto de acceso WiFi, al cual puede el usuario conectarse.<br>
