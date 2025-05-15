@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 721
+$projecttime = 736
 
 
 '*******************************************************************************
@@ -28,7 +28,7 @@ Declare Sub Inihorainicio()
 Declare Sub Get_humidity()
 Declare Sub Txrpi
 Declare Sub Txauto(byval Numtx As Byte)
-Declare Sub Tx0()
+'Declare Sub Tx0()
 Declare Sub Tx1()
 Declare Sub Tx2()
 Declare Sub Tx3()
@@ -89,7 +89,7 @@ Dim Enaprogeep As Eram Byte
 Dim Habdiasem(numprog) As Byte                              'Habilitación día de semana por prgrama
 Dim Habdiasemeep(numprog) As Eram Byte
 Dim Habdiasemtmp As Byte
-Dim Horariego(numhoras) As Long
+Dim Horariego(numhoras) As Long                             'Const Numhoras = Numprog * Numhorariego
 Dim Horariegoeep(numhoras) As Eram Long
 Dim Tiemporiego As Word
 Dim Cntrticks As Word
@@ -99,7 +99,7 @@ Dim Secriegoeep(numsecriego) As Eram Byte
 Dim Diasemana As Byte
 Dim Diasemanaant As Byte
 Dim Habdiaria As Bit
-Dim Horainicio(numhorariego) As Long                        ' Horarios riego iniciales
+Dim Horainicio(numhorariego) As Long                        ' Horarios riego iniciales    Const Numhorariego = 16
 Dim Timestr As String * 10
 Dim Inisecuencia As Bit
 Dim Newsecuencia As Bit
@@ -250,7 +250,7 @@ Dim Rpidata As String * 140 , Rpiproc As String * 140
 'Variables SERIAL0
 Dim Ser_ini As Bit , Sernew As Bit
 Dim Numpar As Byte
-Dim Cmdsplit(34) As String * 20
+Dim Cmdsplit(8) As String * 20
 Dim Serdata As String * 180 , Serrx As Byte , Serproc As String * 180
 
 
@@ -393,7 +393,7 @@ Int_timer1:
 
 
    For Jt1 = 1 To Numtxaut
-      Tmplisr = Lsyssec + Offset(jt1)
+      Tmplisr = Lsyssec - Offset(jt1)
       Tmplisr = Tmplisr Mod Autoval(jt1)
       Jt0 = Jt1 - 1
       If Tmplisr = 0 Then Set Iniauto.jt0
@@ -424,7 +424,7 @@ Int_timer1:
             Set Iniauto.0
             Set Iniauto.2
          End If
-      endif
+      End If
    End If
 
    If Iniriegooff = 1 Then
@@ -834,6 +834,7 @@ End Sub
 
 Sub Tstconfig()
    Enaprogeep = 1                                           'Programa Actual 1
+   Edpoleep = &B00001101
    Tiemporiegoeep = 60
    Tiemporiegooffeep = 900
    Tmpstr52 = "05:00:00"
@@ -2182,6 +2183,42 @@ Sub Tx3()
 End Sub
 
 Sub Tx4()
+   Fechaed = Date$
+   Horaed = Time$
+   Atsnd = "D," + Fechaed + "," + Horaed + "," + Idserial + "-4"
+   If Edhab.0 = 1 Then
+      Tmpbit = Ed0 Xor Edpol.0
+      Atsnd = Atsnd + "," + Str(tmpbit)
+   Else
+      Atsnd = Atsnd + ","
+   End If
+   If Edhab.1 = 1 Then
+      Tmpbit = Ed1 Xor Edpol.1
+      Atsnd = Atsnd + "," + Str(tmpbit)
+   Else
+      Atsnd = Atsnd + ","
+   End If
+   If Edhab.2 = 1 Then
+      Tmpbit = Ed2 Xor Edpol.2
+      Atsnd = Atsnd + "," + Str(tmpbit)
+   Else
+      Atsnd = Atsnd + ","
+   End If
+   If Edhab.3 = 1 Then
+      Tmpbit = Ed3 Xor Edpol.3
+      Atsnd = Atsnd + "," + Str(tmpbit)
+   Else
+      Atsnd = Atsnd + ","
+   End If                                                   '+ Str(tmpbit)
+   Atsnd = Atsnd + "," + ","
+   Atsnd = Atsnd + ",,"
+
+   Tmpw = Len(atsnd)
+   Tmpcrc32 = Crc32(atsnd , Tmpw)
+   Atsnd = Atsnd + "&" + Hex(tmpcrc32)                      ' + Chr(10)
+   Print #1 , "$" ; Atsnd
+   Print #3 , "$" ; Atsnd
+   Call Txrpi()
 
 End Sub
 

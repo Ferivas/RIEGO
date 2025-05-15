@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 322
+$version 0 , 1 , 327
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 128
@@ -15,7 +15,7 @@ $swstack = 128
 $framesize = 128
 $baud = 9600
 
-$projecttime = 384
+$projecttime = 386
 
 
 'Declaracion de constantes
@@ -276,6 +276,7 @@ Do
    If Iniauto.3 = 1 Then
       Reset Iniauto.3
       Print #1 , "TXAUT4"
+      Call Txauto(4)
    End If
 
    If Iniactclk = 1 Then
