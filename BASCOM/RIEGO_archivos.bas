@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 736
+$projecttime = 750
 
 
 '*******************************************************************************
@@ -59,6 +59,8 @@ Dim Tmpdisp As Byte
 
 Dim Trytx As Byte
 Dim Txok As Bit
+Dim Iniresets As Bit
+Dim Wdbit As Bit
 
 Dim Jt0 As Byte , Jt1 As Byte
 
@@ -979,11 +981,31 @@ Sub Procser()
             Cfgokeep = Cfgok
             Call Defaultvalues()
 
+         Case "RESETS"
+            Cmderr = 0
+            Atsnd = "Reset por Software"
+            Set Iniresets
+
          Case "TSTCFG"
             Cmderr = 0
             Atsnd = "Se carga config de prueba"
             Set Inivariables
             Call Tstconfig()
+
+         Case "SETCRI"
+            If Numpar = 2 Then
+               Tmpb = Val(cmdsplit(2))
+               If Tmpb > 0 And Tmpb < Numhorariego_masuno Then
+                  Cmderr = 0
+                  Set Iniciclo
+                  Ptrciclo = Tmpb
+                  Atsnd = "Se activa ciclo de riego de Horario " + Str(tmpb) + " por software"
+               Else
+                  Cmderr = 5
+               End If
+            Else
+               Cmderr = 4
+            End If
 
          Case "LEERID"
             Cmderr = 0
@@ -1752,6 +1774,15 @@ Sub Procser()
                Cmderr = 4
             End If
 
+         Case "TSTWTD"
+            Cmderr = 0
+            Atsnd = "Test Watchdog"
+            Print #1 , "Ini Test"
+            For Tmpb = 1 To 6
+               Print #1 , Tmpb
+               Wait 1
+            Next
+
          Case Else
             Cmderr = 1
 
@@ -2064,6 +2095,7 @@ Sub Txrpi()
       Loop Until Txok = 1 Or T0tout = 1
       Reset T0ini
       If Txok = 0 Then
+         Reset Watchdog
          Print #1 , "$" ; Atsnd
          Print #3 , "$" ; Atsnd
       End If
