@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 340
+$version 0 , 1 , 346
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 256
@@ -15,7 +15,7 @@ $swstack = 256
 $framesize = 256
 $baud = 9600
 
-$projecttime = 404
+$projecttime = 410
 
 
 'Declaracion de constantes
@@ -256,6 +256,7 @@ Do
             Print #1 , "HabDiaria=" ; Habdiaria
          End If
          Call Verackesp32()
+         Call Checkmdm()
       End If
 
       If Tx_buf(ptrtx) = 1 Then

@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 750
+$projecttime = 772
 
 
 '*******************************************************************************
@@ -35,6 +35,7 @@ Declare Sub Tx3()
 Declare Sub Tx4()
 Declare Sub Procrpi()
 Declare Sub Verackesp32()
+Declare Sub Checkmdm()
 Declare Sub Outreles(byval Numprograma As Byte , Byval Numciclo As Byte , Byval Numsecuencia As Byte)
 Declare Sub Data2disp()
 Declare Sub Resetreles()
@@ -197,7 +198,7 @@ Dim Cntresp32rst As Word
 Dim Cntresp32rsteep As Eram Word
 Dim Cntrackesp32 As Word
 Dim Cntrrstmdm As Byte
-'Dim Cntrrstmdmant As Byte
+Dim Cntrrstmdmant As Byte
 Dim Outtemppol As Byte
 Dim Outtemppoleep As Eram Byte
 'Variables ED
@@ -243,6 +244,10 @@ Dim Iniriegooff As Bit
 Dim Cntrriegooff As Word
 Dim Tiemporiegooff As Word
 Dim Tiemporiegooffeep As Eram Word
+Dim Toprstmdm As Byte
+Dim Toprstmdmeep As Eram Byte
+Dim Cntresetmodem As Byte
+Dim Cntresetmodemeep As Eram Byte
 
 'Variables SERIAL 1
 Dim Rpi_ini As Bit , Rpinew As Bit
@@ -565,6 +570,7 @@ Sub Inivar()
    For J = 1 To Numprog
       Print #1 , "Prog " ; J
       For K = 1 To Numhorariego
+         Reset Watchdog
          Tmpw = J - 1
          Tmpw = Tmpw * Numhorariego
          Tmpw = Tmpw + K
@@ -588,6 +594,7 @@ Sub Inivar()
          Tmpw2 = Tmpw2 * 8
          Tmpw = Tmpw + Tmpw2
          For N = 1 To Numsec
+            Reset Watchdog
             Ptrsec = Tmpw + N
             Secriego(ptrsec) = Secriegoeep(ptrsec)
             If Enabug.0 = 1 Then
@@ -644,6 +651,7 @@ Sub Inivar()
    Print #1 , "OUT POLaridad Reles Teporizados=" ; Bin(outtemppol)
 
    For Tmpb = 1 To Ednum
+      Reset Watchdog
       Edname(tmpb) = Ednameeep(tmpb)
       Print #1 , "EDname " ; Tmpb ; "=" ; Edname(tmpb)
       Tredmas(tmpb) = Tredmaseep(tmpb)
@@ -663,6 +671,12 @@ Sub Inivar()
    Toffnebul = Toffnebuleep
    Print #1 , "TOFF nebul=" ; Toffnebul
 
+   Toprstmdm = Toprstmdmeep
+   Print #1 , "Toprstmdm=" ; Toprstmdm
+
+   Cntresetmodem = Cntresetmodemeep
+   Print #1 , "Cntresetmodem=" ; Cntresetmodem
+
    Edsta3ant = 99
 End Sub
 
@@ -672,6 +686,7 @@ Sub Inihorainicio()
    Habdiasemtmp = Habdiasem(j)
    Print #1 , "HabDiaSemana=" ; Bin(habdiasemtmp)
    For K = 1 To Numhorariego
+      Reset Watchdog
       Tmpw = J - 1
       Tmpw = Tmpw * Numhorariego
       Tmpw = Tmpw + K
@@ -768,6 +783,7 @@ Sub Defaultvalues()
    Tiemporiegooffeep = 900
    Tmpb2 = 0
    For Tmpb = 1 To Numprog
+      Reset Watchdog
       Habdiasemeep(tmpb) = &B01111111
       Tmpstr52 = "06:00:00"
       Tmpl = Secofday(tmpstr52)
@@ -794,6 +810,7 @@ Sub Defaultvalues()
          Tmpw2 = Tmpw2 * 8
          Tmpw = Tmpw + Tmpw2
          For N = 1 To Numsec
+            Reset Watchdog
             Ptrsec = Tmpw + N
             Tmpb = Lookup(n , Tbl_secdefault)
             Secriego(ptrsec) = Tmpb
@@ -830,6 +847,9 @@ Sub Defaultvalues()
    Toffnebuleep = 1800
    Tactclkeep = 3600
    Tackeep = 60
+   Cntresetmodemeep = 0
+   Cntresp32rsteep = 0
+   Toprstmdmeep = 20
 
 End Sub
 
@@ -952,6 +972,7 @@ End Sub
 '*******************************************************************************
 Sub Procser()
    Print #1 , "$" ; Serproc
+   Reset Watchdog
    Tmpstr52 = Mid(serproc , 1 , 6)
    Numpar = Split(serproc , Cmdsplit(1) , ",")
 '   If Numpar > 0 Then
@@ -1535,6 +1556,41 @@ Sub Procser()
             Cmderr = 0
             Cntrrstmdm = Val(cmdsplit(2))
             Atsnd = "Se CNTRrstmdm=" + Str(cntrrstmdm)
+
+
+         Case "SETMDM"                                      'Contador RST ESP32
+            If Numpar = 2 Then
+               Cmderr = 0
+               Cntresetmodem = Val(cmdsplit(2))
+               Cntresetmodemeep = Cntresetmodem
+               'Set Iniauto.1
+               Atsnd = "Se conf. Cntresetmodemeep=" + Str(cntresetmodem)
+               'Tmpvaltb = Str(cntresetmodem)
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEEMDM"
+            Cmderr = 0
+            Atsnd = "Cntresetmodem=" + Str(cntresetmodem)
+            'Tmpvaltb = Str(cntresetmodem)
+
+         Case "SETTMD"
+            If Numpar = 2 Then
+               Cmderr = 0
+               Toprstmdm = Val(cmdsplit(2))
+               Toprstmdmeep = Toprstmdm
+               Atsnd = "Se conf limite para reiniciar modem a " + Str(toprstmdm)
+               'Tmpvaltb = Str(toprstmdm)
+               'Set Iniauto.1
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEETMD"
+            Cmderr = 0
+            Atsnd = "Limite para reiniciar modem a " + Str(toprstmdm)
+            'Tmpvaltb = Str(toprstmdm)
 
          Case "ESTADO"
             Cmderr = 0
@@ -2313,6 +2369,24 @@ Sub Verackesp32()
       Wait 1
       Set Esp32rst
       Print #1 , "RSTESP=1"
+   End If
+End Sub
+
+Sub Checkmdm()
+   If Cntrrstmdm > Toprstmdm Then
+      Cntrrstmdm = 0
+      Print #1 , "RESET MDM"
+      Reset Esp32rst
+      Print #1 , "RSTESP=0"
+      Wait 1
+      Set Esp32rst
+      Print #1 , "RSTESP=1"
+      Incr Cntresetmodem
+      Cntresetmodemeep = Cntresetmodem
+   End If
+   If Cntrrstmdm <> Cntrrstmdmant Then
+      Print #1 , "Cntrrstmdm=" ; Cntrrstmdm
+      Cntrrstmdmant=Cntrrstmdm
    End If
 End Sub
 
