@@ -167,6 +167,26 @@ Una vez conectado a esta red (se recomienda desconectar el móvil de la red de d
 
 en el navegador móvil. En esta página se puede ver las redes WiFI disponibles. Se selecciona la que se requiera y se ingresa la contraseña. 
 
+Hay que depurar un bug cuando la red tiene espacios en blanco en el nombre, porque en ese caso no se configura la red WiFi
+
+## MONITOREO DEL MODULO DE COMUNICACIONES
+Cuando se utiliza un ESP32 como módulo de comunicaciones, el mainboard esta verificando si el ESP32 responde a los comandos seriales. Cada segundo se verifica con la subrutina Verackesp32().<br>
+En esta subrutina se aumenta un contador (Cntrackesp32) y se verifica que el valor de este no supere un umbral de 600. El contador Cntrackesp32 se pone en cero si se reciben datos del ESP cuando se envian datos desde el mainboard. Este contador se encera si se recibe ya sea OK,ERR o SETMBD desde el ESP32.  Si no se reciben respuestas desde el ESP32 y se supera el umbral de 600 (10 min aproximadamente) se resetea el módulo de comunicaciones, haceindo que la línea de ENA del ESP32 se ponga en 0L por un segundo y luego volviendo a ponerla en 1L.<br>
+Para depurar en el Hterm se puede consultar el valor de Cntrackesp32 con <br>
+*$LEECRE* <br>
+También se puede configurar el valor del contador con el comando <br>
+*$SETCRE,Valorcntrackesp32*<br>
+Esto se puede utilizar para verificar y/o depurar la operación de reset del ESP32 confiurando un valor cercano al límite 600 y verificando que si no se reciben datos del ESP32 se reinicia el módulo.
+
+También existe la posibilidad de que el módulo ESP32 si este respondiendo pero el problema sea que no haya internet o que el servidor de Thingsboard no responda (aparentemente porque se desconectan las subrutinas de envío de datos). Para esto, cada vez que se reciben datos del ESP32 se verifica si la respuesta del ESP32 ha podido enviar los datos a Thingsboard. En cada consulta si la respuesta del ESP32 es OKW se encera un contador (Cntrrstmdm) y en caso de que la respuesta sea (ERRW) se incrementa este contador. Si el contador excede un valor de Toprstmdm (el cual se puede configurar vía comandos) se procede a reiniciar el ESP32 poniendo a cero la línea ENA por un segundo. El valor por defecto del ocntador Toprstmdm es 20, lo que permite que se reinicie el módulo luego de que se reciban 20 valores de ERRW desde el ESP32.
+
+Para configurar Toprstmdm se utilizan los siguientes comandos<br>
+*$SETTMD,ValorToprstmdm*<br>
+Y para leer el valor configurado <br>
+*$LEETMD*<br>
+
+Para depurar estas subrutinas se puede configurar el valor del contador Cntrrstmdm con <br>
+*$SETCRM,ValorCntrrstmdm*<br>
 
 
 
