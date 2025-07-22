@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 346
+$version 0 , 1 , 370
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 256
@@ -15,7 +15,7 @@ $swstack = 256
 $framesize = 256
 $baud = 9600
 
-$projecttime = 410
+$projecttime = 430
 
 
 'Declaracion de constantes
@@ -31,7 +31,7 @@ Const Numsecriego = Numsec * Numhorariego * Numprog
 Const Ds3231r = &B11010001                                  'DS3231 is very similar to DS1307 but it include a precise crystal
 Const Ds3231w = &B11010000
 
-Const Numtxaut = 4
+Const Numtxaut = 5
 Const Numtxaut_mas_uno = Numtxaut + 1
 
 Const Numadc = 2
@@ -50,6 +50,7 @@ Const Numbuf = 8
 Const Numrelaux = 3
 Const Numrelaux_masuno = Numrelaux + 1
 
+Const Factorq = 1 / 4.8
 
 
 'Configuracion de entradas/salidas
@@ -103,6 +104,10 @@ Ed0 Alias Pina.0
 Ed1 Alias Pina.1
 Ed2 Alias Pina.2
 Ed3 Alias Pina.3
+
+Pulso1 Alias Pina.5
+Set Porta.5
+
 
 Config Ed0 = Input
 Config Ed1 = Input
@@ -207,7 +212,7 @@ Do
       Wdbit = 1                                             ' store the flag
    End If
 
-   Config Watchdog = 4096
+   Config Watchdog = 8192
    If Wdbit = 1 Then                                           ' just print it now since it is important that CONFIG WATCHDOG runs early as possible
       Print #1 , "Micro was reset by Watchdog overflow"
    End If
@@ -226,6 +231,14 @@ Do
          Reset Rpinew
          Print#1 , "RPItx>" ; Rpiproc
          Call Procrpi()
+      End If
+
+      If Newplv = 1 Then
+         Reset Newplv
+         Edcntreep = Edcntr
+         Scacntr = Edcntr Mod Scaval
+         Edval = Edcntr * Edescala
+         Print #1 , Fusing(edval , "#.#")
       End If
 
       Call Leered()
@@ -291,6 +304,12 @@ Do
          Reset Iniauto.3
          Print #1 , "TXAUT4"
          Call Txauto(4)
+      End If
+
+      If Iniauto.4 = 1 Then
+         Reset Iniauto.4
+         Print #1 , "TXAUT5"
+         Call Txauto(5)
       End If
 
       If Iniactclk = 1 Then

@@ -1,5 +1,6 @@
 N,Idserial,Token,Nodo,field1,field2,field3,field4,field5,field6,field7,field8,D
-1,IDSerial-1,Token,RIEGO,ev1,ev2,ev3,ev4,ev5,ev6,evriego,modo,D
-2,IDSerial-2,Token,RIEGO,h1,t1,cini,cesp32rst,numprog,triego,tonnebul,toffnebul,D
-3,IDSerial-3,Token,RIEGO,,evozono,evnebul,evrecirc,evluzev,,,,D
-4,IDSerial-5,Token,RIEGO,ed1,ed2,ed3,ed4,,,,,D
+1,6E756E6B776FFF001012-1,TOKEN,RIEGO,ev1,ev2,ev3,ev4,ev5,ev6,evriego,modo,D
+2,6E756E6B776FFF001012-2,TOKEN,RIEGO,h1,t1,cini,cesp32rst,numprog,triego,tonnebul,toffnebul,D
+3,6E756E6B776FFF001012-3,TOKEN,RIEGO,,evozono,evnebul,evrecirc,evluzev,,,,D
+4,6E756E6B776FFF001012-4,TOKEN,RIEGO,ed1,ed2,ed3,ed4,,,,,D
+5,6E756E6B776FFF001012-5,TOKEN,RIEGO,edval,,,,,,,,D

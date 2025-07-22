@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 772
+$projecttime = 798
 
 
 '*******************************************************************************
@@ -33,6 +33,7 @@ Declare Sub Tx1()
 Declare Sub Tx2()
 Declare Sub Tx3()
 Declare Sub Tx4()
+Declare Sub Tx5()
 Declare Sub Procrpi()
 Declare Sub Verackesp32()
 Declare Sub Checkmdm()
@@ -52,6 +53,7 @@ Dim Tmpb As Byte , Tmpb2 As Byte , Tmpb3 As Byte , Tmpb4 As Byte
 Dim J As Byte , K As Byte , K1 As Byte , N As Byte
 Dim Tmpl As Long , Tmpl2 As Long
 Dim Tmpw As Word , Tmpw2 As Word
+Dim Tmps As Single
 Dim Tmpcrc32 As Long
 Dim Tmpbit As Bit
 Dim Modo As Bit
@@ -248,6 +250,18 @@ Dim Toprstmdm As Byte
 Dim Toprstmdmeep As Eram Byte
 Dim Cntresetmodem As Byte
 Dim Cntresetmodemeep As Eram Byte
+'pulsos
+Dim Edpulso As Byte
+Dim Edval As Single
+Dim Newplv As Bit
+Dim Scacntr As Long
+Dim Scaval As Long
+Dim Edcntr As Long
+Dim Edcntreep As Eram Long
+Dim Edescala As Single
+Dim Edescalaeep As Eram Single
+Dim Scavaleep As Eram Long
+
 
 'Variables SERIAL 1
 Dim Rpi_ini As Bit , Rpinew As Bit
@@ -532,6 +546,34 @@ Int_timer2:
       Next
    End If
 
+   Select Case Edpulso
+      Case 0:                                               'Normal
+         If Pulso1 = 0 Then
+            Edpulso = 2
+         End If
+      Case 1:                                               'Alarma
+         If Pulso1 = 1 Then
+            Edpulso = 3
+         End If
+      Case 2:                                               'Prealarma
+         If Pulso1 = 1 Then
+            Edpulso = 0
+         Else
+            Edpulso = 1
+         End If
+      Case 3:                                               'Prenormal
+         If Pulso1 = 0 Then
+            Edpulso = 1
+         Else
+            Edpulso = 0
+            Incr Edcntr
+            Scacntr = Edcntr Mod Scaval
+            If Scacntr = 0 Then
+               Set Newplv
+            End If
+         End If
+   End Select
+
 Return
 
 
@@ -678,6 +720,16 @@ Sub Inivar()
    Print #1 , "Cntresetmodem=" ; Cntresetmodem
 
    Edsta3ant = 99
+
+   Edcntr = Edcntreep
+   Print #1 , "EDcntr=" ; Edcntr
+   Edescala = Edescalaeep
+   Print #1 , "EDescala=" ; Edescala
+   Edval = Edcntr * Edescala
+   Print #1 , "EDval=" ; Edval
+   Scaval = Scavaleep
+   Print #1 , "SCAVAL=" ; Scaval
+
 End Sub
 
 Sub Inihorainicio()
@@ -782,6 +834,10 @@ Sub Defaultvalues()
    Tiemporiegoeep = 60
    Tiemporiegooffeep = 900
    Tmpb2 = 0
+   Edcntreep = 0
+   Edescala = Factorq
+   Edescalaeep = Edescala
+   Scavaleep = 1
    For Tmpb = 1 To Numprog
       Reset Watchdog
       Habdiasemeep(tmpb) = &B01111111
@@ -1839,6 +1895,39 @@ Sub Procser()
                Wait 1
             Next
 
+         Case "SETCNT"                                      'Configuración de contador
+            If Numpar = 2 Then
+               Tmpl2 = Val(cmdsplit(2))
+               Edcntr = Tmpl2
+               Edval = Edcntr * Edescala
+               Edcntreep = Edcntr
+               'Call Write_edcntr()
+               Cmderr = 0
+               Atsnd = "Se configuro valor de contador de impulsos a " + Str(edcntr)
+            Else
+               Cmderr = 4
+            End If
+
+         Case "SETSCA"                                      'Configuración de contador
+            If Numpar = 2 Then
+               Tmps = Val(cmdsplit(2))
+               Edescala = Tmps
+               Edval = Edcntr * Edescala
+               Edescalaeep = Edescala
+               Cmderr = 0
+               Atsnd = "Se configuro valor de escala del contador a " + Str(edescala)
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEECNT"
+            If Numpar = 1 Then
+               Cmderr = 0
+               Atsnd = "Contador=" + Str(edcntr) + ", Escala=" + Fusing(edescala , "#.##") + ", Valor=" + Fusing(edval , "#.##")
+            Else
+               Cmderr = 4
+            End If
+
          Case Else
             Cmderr = 1
 
@@ -2222,6 +2311,8 @@ Sub Txauto(byval Numtx As Byte)
          Call Tx3()
       Case 4:
          Call Tx4()
+      Case 5:
+         Call Tx5()
       Case Else:
          Print #1 , "No proc Numtx"
    End Select
@@ -2301,6 +2392,20 @@ Sub Tx4()
    Atsnd = Atsnd + "," + ","
    Atsnd = Atsnd + ",,"
 
+   Tmpw = Len(atsnd)
+   Tmpcrc32 = Crc32(atsnd , Tmpw)
+   Atsnd = Atsnd + "&" + Hex(tmpcrc32)                      ' + Chr(10)
+   Print #1 , "$" ; Atsnd
+   Print #3 , "$" ; Atsnd
+   Call Txrpi()
+
+End Sub
+
+Sub Tx5()
+   Fechaed = Date$
+   Horaed = Time$
+   Atsnd = "5" + "," + Fechaed + "," + Horaed + "," + Idserial + "-5"
+   Atsnd = Atsnd + "," + Fusing(edval , "#.#") + ",,,,,,,"
    Tmpw = Len(atsnd)
    Tmpcrc32 = Crc32(atsnd , Tmpw)
    Atsnd = Atsnd + "&" + Hex(tmpcrc32)                      ' + Chr(10)
