@@ -40,6 +40,28 @@ Permite leer datos de humeda/temperatura ambiental
 ## OPERACION MODO MANUAL
 En el modo manual se activan los relés de las válvulas EV1, EV2, EV3, EV4, EV5, EV6.<br>
 Los demás relés se desactivan a excepción de los relés auxiliares que mantienen su último estado.
+En modo Manual (Mantenimiento) se puede controlar el encendido/apagado de las electroválvulas EV1-6 configurando el estado de las mismas utilizando el siguiente comando<br>
+
+*$SETEVM,NNNNNNNN*
+
+en donde N corresponde a un bit asociado a cada electroválvula. Los bits están asociados de la siguiente manera
+
+B8 B7 B6 B5 B4 B3 B2 B1<br>
+el bit B1 corresponde a la electrovalvula EV1, el B2 a EV2 y así consecutivamente.
+
+Por tanto si se quiere que en modo mantenimiento se activen B4 y B1 por ejemplo , el comando que se debe enviar por el serial es el siguiente:
+
+*$SETEVM,00001001*
+
+También se puede enviar los comandos desde el Dashboard de Thingsboard utilizando el widget RPC Debug Terminal. En este caso los comandos se envian siguiendo la siguiente estructura:
+
+*setCmd {"CMD":"SETEVM,00001001"}*
+
+https://github.com/Ferivas/RIEGO/blob/main/DOCS/RPC_debug.jpg
+
+
+
+
 
 ## OPERACION MODO AUTOMATICO
 El Sistema de Riego se puede programar con 4 programas de riego que permiten activar secuencialmente las electroválvulas temporizadas en secuencias que se pueden configurar para cada programa. Una secuencia incluye un tiempo de accionamiento durante el cual se activan los relés que se han configurado y luego un tiempo de espera en el cual se apagan todos los relés hasata ejecutar una nueva secuencia. Solo un programa puede estar activo a la vez.<br>
