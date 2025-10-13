@@ -57,11 +57,7 @@ También se puede enviar los comandos desde el Dashboard de Thingsboard utilizan
 
 *setCmd {"CMD":"SETEVM,00001001"}*
 
-https://github.com/Ferivas/RIEGO/blob/main/DOCS/RPC_debug.jpg
-
-
-
-
+<img width="800" alt="Registros Riego" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/RPC_debug.jpg">
 
 ## OPERACION MODO AUTOMATICO
 El Sistema de Riego se puede programar con 4 programas de riego que permiten activar secuencialmente las electroválvulas temporizadas en secuencias que se pueden configurar para cada programa. Una secuencia incluye un tiempo de accionamiento durante el cual se activan los relés que se han configurado y luego un tiempo de espera en el cual se apagan todos los relés hasata ejecutar una nueva secuencia. Solo un programa puede estar activo a la vez.<br>
