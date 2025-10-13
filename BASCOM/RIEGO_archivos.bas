@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 798
+$projecttime = 861
 
 
 '*******************************************************************************
@@ -41,6 +41,7 @@ Declare Sub Outreles(byval Numprograma As Byte , Byval Numciclo As Byte , Byval 
 Declare Sub Data2disp()
 Declare Sub Resetreles()
 Declare Sub Setreles()
+Declare Sub Setrelesman()
 Declare Sub Leered()
 Declare Sub Gentrama()
 Declare Sub Tstconfig()
@@ -64,6 +65,7 @@ Dim Trytx As Byte
 Dim Txok As Bit
 Dim Iniresets As Bit
 Dim Wdbit As Bit
+Dim Newrpicmd As Bit
 
 Dim Jt0 As Byte , Jt1 As Byte
 
@@ -261,6 +263,10 @@ Dim Edcntreep As Eram Long
 Dim Edescala As Single
 Dim Edescalaeep As Eram Single
 Dim Scavaleep As Eram Long
+Dim Evrelesman As Byte
+Dim Evrelesmaneep As Eram Byte
+Dim Cntrcmd As Word
+Dim Cntrcmdeep As Eram Word
 
 
 'Variables SERIAL 1
@@ -271,7 +277,7 @@ Dim Rpidata As String * 140 , Rpiproc As String * 140
 'Variables SERIAL0
 Dim Ser_ini As Bit , Sernew As Bit
 Dim Numpar As Byte
-Dim Cmdsplit(8) As String * 20
+Dim Cmdsplit(8) As String * 32
 Dim Serdata As String * 180 , Serrx As Byte , Serproc As String * 180
 
 
@@ -708,6 +714,10 @@ Sub Inivar()
    Edhab = Edhabeep
    Print #1 , "EDhab=" ; Bin(edhab)
 
+   Edhab = &HFF
+   Print #1 , "EDhab=" ; Bin(edhab)
+
+
    Tonnebul = Tonnebuleep
    Print #1 , "TON nebul=" ; Tonnebul
    Toffnebul = Toffnebuleep
@@ -729,6 +739,10 @@ Sub Inivar()
    Print #1 , "EDval=" ; Edval
    Scaval = Scavaleep
    Print #1 , "SCAVAL=" ; Scaval
+   Evrelesman = Evrelesmaneep
+   Print #1 , "Evrelesman=" ; Bin(evrelesman)
+   Cntrcmd = Cntrcmdeep
+   Print #1 , "CNTRcmd=" ; Cntrcmd
 
 End Sub
 
@@ -794,6 +808,17 @@ Sub Setreles()
    Set Ev4
    Set Ev5
    Set Ev6
+
+End Sub
+
+Sub Setrelesman()
+   Ev1 = Evrelesman.0
+   Ev2 = Evrelesman.1
+   Ev3 = Evrelesman.2
+   Ev4 = Evrelesman.3
+   Ev5 = Evrelesman.4
+   Ev6 = Evrelesman.5
+
 
 End Sub
 
@@ -906,6 +931,8 @@ Sub Defaultvalues()
    Cntresetmodemeep = 0
    Cntresp32rsteep = 0
    Toprstmdmeep = 20
+   Evrelesmaneep = &H3F
+   Cntrcmdeep = 0
 
 End Sub
 
@@ -1928,6 +1955,54 @@ Sub Procser()
                Cmderr = 4
             End If
 
+         Case "SETEVM"
+            Select Case Numpar
+               Case 2:
+                  Cmderr = 0
+                  Tmpb = Binval(cmdsplit(2))
+                  Atsnd = "Se configuran EVs en manteniento a " + Bin(tmpb)
+                  Evrelesman = Tmpb
+                  Evrelesmaneep = Evrelesman
+               Case 3:
+                  Tmpb = Val(cmdsplit(2))
+                  Tmpb2 = Val(cmdsplit(3))
+                  If Tmpb > 0 And Tmpb < 9 Then
+                     Cmderr = 0
+                     Tmpb3 = Tmpb - 1
+                     If Tmpb2 = 0 Then
+                        Reset Evrelesman.tmpb3
+                     Else
+                        Set Evrelesman.tmpb3
+                     End If
+                     Cmderr = 0
+                     Atsnd = "Se config EV" + Str(tmpb) + "=" + Str(tmpb2)
+                     Evrelesmaneep = Evrelesman
+                  Else
+                     Cmderr = 5
+                  End If
+               Case Else
+                  Cmderr = 4
+
+            End Select
+
+         Case "LEEEVM"
+            Cmderr = 0
+            Atsnd = "EVs en manteniento a " + Bin(evrelesman)
+
+         Case "SETCCM"
+            If Numpar = 2 Then
+               Cmderr = 0
+               Cntrcmd = Val(cmdsplit(2))
+               Cntrcmdeep = Cntrcmd
+               Atsnd = "Se config CntrCMD a " + Str(cntrcmd)
+            Else
+               Cmderr = 4
+            End If
+
+         Case "LEECCM"
+            Cmderr = 0
+            Atsnd = "CntrCMD=" + Str(cntrcmd)
+
          Case Else
             Cmderr = 1
 
@@ -1939,6 +2014,14 @@ Sub Procser()
 
    If Cmderr > 0 Then
       Atsnd = Lookupstr(cmderr , Tbl_err)
+   Else
+      If Newrpicmd = 1 Then
+         Reset Newrpicmd
+         Incr Cntrcmd
+         Cntrcmdeep = Cntrcmd
+         Set Iniauto.4
+      End If
+
    End If
 
    Print #1 , Atsnd
@@ -2288,7 +2371,8 @@ Sub Procrpi()
          Set Sernew
          'Set Resptb
          Serproc = Cmdsplit(2)
-         Print #1 , "NEW MDC CMD"
+         Print #1 , "NEW MDC CMD>" ; Serproc
+         Set Newrpicmd
 
       Case Else
          Print #1 , "No cmd val"
@@ -2365,30 +2449,30 @@ Sub Tx4()
    Fechaed = Date$
    Horaed = Time$
    Atsnd = "D," + Fechaed + "," + Horaed + "," + Idserial + "-4"
-   If Edhab.0 = 1 Then
+'   If Edhab.0 = 1 Then
       Tmpbit = Ed0 Xor Edpol.0
       Atsnd = Atsnd + "," + Str(tmpbit)
-   Else
-      Atsnd = Atsnd + ","
-   End If
-   If Edhab.1 = 1 Then
+'   Else
+'      Atsnd = Atsnd + ","
+'   End If
+'   If Edhab.1 = 1 Then
       Tmpbit = Ed1 Xor Edpol.1
       Atsnd = Atsnd + "," + Str(tmpbit)
-   Else
-      Atsnd = Atsnd + ","
-   End If
-   If Edhab.2 = 1 Then
+'   Else
+'      Atsnd = Atsnd + ","
+'   End If
+'   If Edhab.2 = 1 Then
       Tmpbit = Ed2 Xor Edpol.2
       Atsnd = Atsnd + "," + Str(tmpbit)
-   Else
-      Atsnd = Atsnd + ","
-   End If
-   If Edhab.3 = 1 Then
+'   Else
+'      Atsnd = Atsnd + ","
+'   End If
+'   If Edhab.3 = 1 Then
       Tmpbit = Ed3 Xor Edpol.3
       Atsnd = Atsnd + "," + Str(tmpbit)
-   Else
-      Atsnd = Atsnd + ","
-   End If                                                   '+ Str(tmpbit)
+'   Else
+'      Atsnd = Atsnd + ","
+'   End If                                                   '+ Str(tmpbit)
    Atsnd = Atsnd + "," + ","
    Atsnd = Atsnd + ",,"
 
@@ -2405,7 +2489,7 @@ Sub Tx5()
    Fechaed = Date$
    Horaed = Time$
    Atsnd = "5" + "," + Fechaed + "," + Horaed + "," + Idserial + "-5"
-   Atsnd = Atsnd + "," + Fusing(edval , "#.#") + ",,,,,,,"
+   Atsnd = Atsnd + "," + Fusing(edval , "#.#") + "," + Str(cntrcmd) + ",,,,,,"
    Tmpw = Len(atsnd)
    Tmpcrc32 = Crc32(atsnd , Tmpw)
    Atsnd = Atsnd + "&" + Hex(tmpcrc32)                      ' + Chr(10)
@@ -2420,30 +2504,30 @@ Sub Gentrama()
    Fechaed = Date(tmpl)
    Horaed = Time(tmpl)
    Atsnd = "D," + Fechaed + "," + Horaed + "," + Idserial + "-5"
-   If Edhab.0 = 1 Then
+'   If Edhab.0 = 1 Then
       Tmpbit = Ed_buf(ptrtx).0
       Atsnd = Atsnd + "," + Str(tmpbit)
-   Else
-      Atsnd = Atsnd + ","
-   End If
-   If Edhab.1 = 1 Then
+'   Else
+'      Atsnd = Atsnd + ","
+'   End If
+'   If Edhab.1 = 1 Then
       Tmpbit = Ed_buf(ptrtx).1
       Atsnd = Atsnd + "," + Str(tmpbit)
-   Else
-      Atsnd = Atsnd + ","
-   End If
-   If Edhab.2 = 1 Then
+'   Else
+'      Atsnd = Atsnd + ","
+'   End If
+'   If Edhab.2 = 1 Then
       Tmpbit = Ed_buf(ptrtx).2
       Atsnd = Atsnd + "," + Str(tmpbit)
-   Else
-      Atsnd = Atsnd + ","
-   End If
-   If Edhab.3 = 1 Then
+'   Else
+'      Atsnd = Atsnd + ","
+'   End If
+'   If Edhab.3 = 1 Then
       Tmpbit = Ed_buf(ptrtx).3
       Atsnd = Atsnd + "," + Str(tmpbit)
-   Else
-      Atsnd = Atsnd + ","
-   End If                                                   '+ Str(tmpbit)
+ '  Else
+'      Atsnd = Atsnd + ","
+'   End If                                                   '+ Str(tmpbit)
    Atsnd = Atsnd + "," + ","
    Atsnd = Atsnd + ",,"
 
@@ -2508,7 +2592,7 @@ Sub Leered()
 
    For Tmped = 0 To Ednum_1
       Jed = Tmped + 1
-      If Edhab.tmped = 1 Then
+      'If Edhab.tmped = 1 Then
          Tmpbit = Pina.tmped Xor Edpol.tmped
          If Evmas.tmped = 1 Then
             Reset Evmas.tmped
@@ -2560,7 +2644,7 @@ Sub Leered()
             Incr Ptrbuf
             Print #1 , "PTRBUF-=" ; Ptrbuf
          End If
-      End If
+      'End If
    Next
 
 End Sub

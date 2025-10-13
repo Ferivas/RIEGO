@@ -132,6 +132,11 @@ def rpc_callback(request_id, request_body):
     print(f"RPC recibido: {request_body}")
     print("ri>",request_id,";",type(request_id))
     print("rb>",request_body,";",type(request_body))
+    print("sndRPC")
+    try:
+        client.send_rpc_call(request_id,{"status": "ok"},{"CMD":"OK"},rpc_callback)
+    except:
+        print("ERR snd RPC")
 
     # if request_body['method'] == 'setValue':  # RPC desde el dashboard de TB
     #     params = request_body.get('params', False)  # Obtener True/False
@@ -156,7 +161,7 @@ def mqtt_listener():
              time.sleep(1)
              cntr_errhilo=cntr_errhilo+1
              print("Err listener>",e,",",cntr_errhilo)
-             if cntr_errhilo==120:
+             if cntr_errhilo==30:
                  print("Reset ESP32")
                  machine.reset()
                  
@@ -547,10 +552,13 @@ while True:
           ser.write(salida)
       if rqbody['method'] == 'setCmd':
           cmdata=rqbody['params']
-          cmd=cmdata.get("CMD")
-          salida="%SETMBD;"+cmd+"\r\n"
-          print(salida)
-          ser.write(salida)          
+          try:
+              cmd=cmdata.get("CMD")
+              salida="%SETMBD;"+cmd+"\r\n"
+              print(salida)
+              ser.write(salida)
+          except:
+              print("Err proc CMD")
           
 
   if flagseg:
@@ -560,11 +568,11 @@ while True:
     if tfx==0:
         print('Int',cntrmdc)
         
-  if newrpc:
-    newrpc=False
-    print("New RPC")
-    print("RQid>",rqid)
-    print("RQbody>",rqbody)
+  # if newrpc:
+  #   newrpc=False
+  #   print("New RPC")
+  #   print("RQid>",rqid)
+  #   print("RQbody>",rqbody)
     #client.send_rpc_call(rqid, {"status": "ok", "led": params},rpc_callback)
 
   # if error_hilo:

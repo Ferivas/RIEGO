@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 370
+$version 0 , 1 , 386
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 256
@@ -15,7 +15,7 @@ $swstack = 256
 $framesize = 256
 $baud = 9600
 
-$projecttime = 430
+$projecttime = 438
 
 
 'Declaracion de constantes
@@ -218,7 +218,8 @@ Do
    End If
    Start Watchdog
 
-
+   Edhab = &HFF
+   Print #1 , "Confirma EDhab=" ; Bin(edhab)
    Do
 
       If Sernew = 1 Then                                       'DATOS SERIAL 1
@@ -254,6 +255,7 @@ Do
 
       If Newsec = 1 Then
          Reset Watchdog
+         Edhab = &HFF
          Reset Newsec
          Incr K1
          Call Data2disp()
@@ -471,7 +473,7 @@ Do
             Edsta3ant = Edsta(3)
             Print #1 , "Edsta(3)=" ; Edsta(3)
             Print #1 , "MANUAL"
-            Call Setreles()
+            Call Setrelesman()
             Set Iniauto.0
             Reset Modo
             Reset Evriego
@@ -480,6 +482,14 @@ Do
             Reset Evrecirc
             Reset Evluzev
          End If
+         Call Setrelesman()
+         Reset Modo
+         Reset Evriego
+         Reset Evozono
+         Reset Evnebul
+         Reset Evrecirc
+         Reset Evluzev
+
       End If
 
    Loop Until Iniresets = 1
