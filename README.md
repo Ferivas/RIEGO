@@ -59,6 +59,15 @@ También se puede enviar los comandos desde el Dashboard de Thingsboard utilizan
 
 <img width="800" alt="Registros Riego" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/RPC_debug.jpg">
 
+## ACTIVACION RELES AUXILIARES
+En esta version se pueden activar hasta tres relés auxiliares. En el equipo instalado ahora se tiene un relel auxiliar cableado en la entrada 1. 
+
+Para activar este relé de manera remota utilizando el terminal en el dashboard es necesario utilizar el siguiente comando:<br>
+setCmd {"CMD": "setaux,1,1"}
+Para desactivar este relé de manera remota utilizando el terminal en el dashboard es necesario utilizar el siguiente comando:<br>
+setCmd {"CMD": "setaux,1,0"}
+  
+
 ## OPERACION MODO AUTOMATICO
 El Sistema de Riego se puede programar con 4 programas de riego que permiten activar secuencialmente las electroválvulas temporizadas en secuencias que se pueden configurar para cada programa. Una secuencia incluye un tiempo de accionamiento durante el cual se activan los relés que se han configurado y luego un tiempo de espera en el cual se apagan todos los relés hasata ejecutar una nueva secuencia. Solo un programa puede estar activo a la vez.<br>
 En cada programa de riego se pueden configurar 16 horas de inicio de un ciclo de riego. Una ciclo de riego activa secuencialmente las electroválvulas en grupos. Una ciclo de riego puede tener hasta 8 secuencias de activación. En cada secuencia de activación se pueden activar/desactivar uno o más electroválvulas temporizadas activando/desactivando bits en los registros de de activación de secuencias de una hora de inicio de un ciclo re riego.<br>
