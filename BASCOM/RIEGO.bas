@@ -7,7 +7,7 @@
 ' memoria SD
 '
 
-$version 0 , 1 , 386
+$version 0 , 1 , 399
 $regfile = "m2560def.dat"
 $crystal = 16000000
 $hwstack = 256
@@ -15,7 +15,7 @@ $swstack = 256
 $framesize = 256
 $baud = 9600
 
-$projecttime = 438
+$projecttime = 459
 
 
 'Declaracion de constantes
@@ -217,6 +217,15 @@ Do
       Print #1 , "Micro was reset by Watchdog overflow"
    End If
    Start Watchdog
+
+
+   If Cicloenproceep = 1 Then
+      Call Veriegopendiente()
+   Else
+      Print #1 , "No hay secuencias pendientes"
+   End If
+
+
 
    Edhab = &HFF
    Print #1 , "Confirma EDhab=" ; Bin(edhab)
@@ -436,9 +445,13 @@ Do
                If Iniciclo <> Inicicloant Then
                   Inicicloant = Iniciclo
                   Print #1 , "Ini Ciclo de Riego " ; Ptrciclo
+                  Ptrcicloeep = Ptrciclo
                   Set Inisecuencia
                   Set Newsecuencia
-                  Ptrsecuencia = 0
+                  If Cicloenproceep = 0 Then
+                     Ptrsecuencia = 0
+                  End If
+                  Cicloenproceep = 1
                'Set Evriego
                'Set Evozono
                End If
@@ -450,6 +463,7 @@ Do
                   Set Iniauto.0
                   Incr Ptrsecuencia
                   Ptrsecuencia = Ptrsecuencia Mod Numsec
+                  Ptrsecuenciaeep = Ptrsecuencia
                   If Ptrsecuencia > 6 Then
                      Reset Evriego
                      Reset Evozono
@@ -457,6 +471,7 @@ Do
                'Ptrsecuencia = Ptrsecuencia Mod 6
                   If Ptrsecuencia = 0 Then
                      Reset Iniciclo
+                     Cicloenproceep = 0
                      Inicicloant = Iniciclo
                      Print #1 , "FIN Ciclo"
                      Call Resetreles()

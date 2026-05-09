@@ -8,7 +8,7 @@
 '* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 $nocompile
-$projecttime = 861
+$projecttime = 939
 
 
 '*******************************************************************************
@@ -45,6 +45,7 @@ Declare Sub Setrelesman()
 Declare Sub Leered()
 Declare Sub Gentrama()
 Declare Sub Tstconfig()
+Declare Sub Veriegopendiente()
 
 
 '*******************************************************************************
@@ -52,7 +53,7 @@ Declare Sub Tstconfig()
 '*******************************************************************************
 Dim Tmpb As Byte , Tmpb2 As Byte , Tmpb3 As Byte , Tmpb4 As Byte
 Dim J As Byte , K As Byte , K1 As Byte , N As Byte
-Dim Tmpl As Long , Tmpl2 As Long
+Dim Tmpl As Long , Tmpl2 As Long , Tmpl3 As Long
 Dim Tmpw As Word , Tmpw2 As Word
 Dim Tmps As Single
 Dim Tmpcrc32 As Long
@@ -267,6 +268,10 @@ Dim Evrelesman As Byte
 Dim Evrelesmaneep As Eram Byte
 Dim Cntrcmd As Word
 Dim Cntrcmdeep As Eram Word
+
+Dim Cicloenproceep As Eram Byte
+Dim Ptrcicloeep As Eram Byte
+Dim Ptrsecuenciaeep As Eram Byte
 
 
 'Variables SERIAL 1
@@ -743,7 +748,45 @@ Sub Inivar()
    Print #1 , "Evrelesman=" ; Bin(evrelesman)
    Cntrcmd = Cntrcmdeep
    Print #1 , "CNTRcmd=" ; Cntrcmd
+End Sub
 
+Sub Veriegopendiente()
+   Print #1 , "Ciclo riego no completado"
+   Tmpb = Ptrsecuenciaeep                                   'Ultima secuencia guardad
+   Print #1 , "Ultima sec >" ; Tmpb
+   Tmpb2 = 8 - tmpb                                         'Numero de ciclos faltantes
+   If Tmpb2 > 0 And Tmpb < 9 Then
+      Ptrciclo = Ptrcicloeep                             'Aqui esta el puntero de la ultima hora de riego
+      Print #1 , "PTR ciclo guardado=" ; Ptrciclo
+      Tmpb = Ptrciclo + 1
+      J = Enaprog
+      Tmpw = J - 1
+      Tmpw = Tmpw * Numhorariego
+      Tmpw = Tmpw + Tmpb
+      Tmpl = Horariego(tmpw)
+      Print #1 , "Hora siguiente riego=" ; Time(tmpl) ; "," ; Tmpl
+      Tmpl2 = Syssec()
+      Tmpl3 = Secofday(tmpl2)
+      Tmpstr52 = Time(tmpl3)
+      Print #1 , "Hora actual=" ; Tmpstr52 ; "," ; Tmpl3
+      Tmpw = Tiemporiego + Tiemporiegooff
+      Tmpl2 = Tmpb2 * Tmpw
+      Tmpstr52 = Time(tmpl2)
+      Print #1 , "Tiempo que falta=" ; Tmpstr52 ; "," ; Tmpl2
+      Tmpl3 = Tmpl3 + Tmpl2
+
+      If Tmpl3 < Tmpl Then
+         Set Iniciclo
+         Ptrsecuencia = Ptrsecuenciaeep
+         Print #1 , "Se riega lo que falta a partir sec" ; Ptrsecuencia
+      Else
+         Print #1 , "No se riega para evitar traslape"
+      End If
+
+
+   Else
+      Print #1 , "Err sec faltantes"
+   End If
 End Sub
 
 Sub Inihorainicio()
@@ -933,6 +976,8 @@ Sub Defaultvalues()
    Toprstmdmeep = 20
    Evrelesmaneep = &H3F
    Cntrcmdeep = 0
+   Cicloenproceep = 0
+   Ptrcicloeep = 0
 
 End Sub
 
@@ -2002,6 +2047,12 @@ Sub Procser()
          Case "LEECCM"
             Cmderr = 0
             Atsnd = "CntrCMD=" + Str(cntrcmd)
+
+         Case "VERPEN"
+            Cmderr = 0
+            Atsnd = "Simula el pendiente"
+            Call Veriegopendiente()
+
 
          Case Else
             Cmderr = 1
