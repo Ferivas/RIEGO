@@ -59,13 +59,30 @@ También se puede enviar los comandos desde el Dashboard de Thingsboard utilizan
 
 <img width="800" alt="Registros Riego" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/RPC_debug.jpg">
 
+## ACTIVACION DE CICLO DE RIEGO ADICIONAL
+Para generar un ciclo de riego adicional de manera remota se debe utilizar el siguiente comando en el terminal del Dashboard:<br>
+
+**setCmd {"CMD": "setcri,N"}**
+
+en donde N es el número de ciclo de riego del programa actual y puede variar entre 1 y 16.
+
+Por ejemplo para activar el horario 2 se utiliza el comando:
+
+**setCmd {"CMD": "setcri,2"}**
+
+<img width="800" alt="Activar Ciclos de Riego" src="https://github.com/Ferivas/RIEGO/blob/main/DOCS/RPC_cicloderiego.jpg">
+
+
 ## ACTIVACION RELES AUXILIARES
 En esta version se pueden activar hasta tres relés auxiliares. En el equipo instalado ahora se tiene un relel auxiliar cableado en la entrada 1. 
 
 Para activar este relé de manera remota utilizando el terminal en el dashboard es necesario utilizar el siguiente comando:<br>
-setCmd {"CMD": "setaux,1,1"}
+
+**setCmd {"CMD": "setaux,1,1"}**
+
 Para desactivar este relé de manera remota utilizando el terminal en el dashboard es necesario utilizar el siguiente comando:<br>
-setCmd {"CMD": "setaux,1,0"}
+
+**setCmd {"CMD": "setaux,1,0"}**
   
 
 ## OPERACION MODO AUTOMATICO
